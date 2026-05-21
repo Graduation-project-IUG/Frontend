@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+  }
+
+  datasource db {
+    provider = "postgresql"
+      url      = env("DATABASE_URL")
+      }
+
+      model User {
+        id        Int       @id @default(autoincrement())
+	  email     String    @unique @db.VarChar(50)
+	    phone     String?   @unique @db.VarChar(20)
+	      password  String    @db.VarChar(256)
+	        role      String    @default("User") @db.VarChar(255)
+		  bio       String?
+		    birthdate DateTime? @db.Date
+		      city      String?   @db.VarChar(50)
+		        createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+
+			  posts     Post[]
+			    comments  Comment[]
+			      reports   Report[]
+			        reactions Reaction[]
+
+				  @@map("users")
+				  }
+
+				  model Post {
+				    id          Int       @id @default(autoincrement())
+				      userId      Int       @map("user_id")
+				        category    String?   @db.VarChar(20)
+					  title       String    @db.VarChar(100)
+					    description String?
+					      rating      Float?
+					        createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+
+						  user      User       @relation(fields: [userId], references: [id])
+						    comments  Comment[]
+						      reports   Report[]
+						        reactions Reaction[]
+
+							  @@map("posts")
+							  }
+
+							  model Comment {
+							    id        Int       @id @default(autoincrement())
+							      postId    Int       @map("post_id")
+							        userId    Int       @map("user_id")
+								  content   String
+								    rating    Float?
+								      createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+
+								        post Post @relation(fields: [postId], references: [id])
+									  user User @relation(fields: [userId], references: [id])
+
+									    @@map("comments")
+									    }
+
+									    model Report {
+									      id        Int       @id @default(autoincrement())
+									        userId    Int       @map("user_id")
+										  postId    Int       @map("post_id")
+										    reason    String
+										      createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+
+										        user User @relation(fields: [userId], references: [id])
+											  post Post @relation(fields: [postId], references: [id])
+
+											    @@map("reports")
+											    }
+
+											    model Reaction {
+											      id        Int       @id @default(autoincrement())
+											        userId    Int       @map("user_id")
+												  postId    Int       @map("post_id")
+												    reaction  Int
+												      createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+
+												        user User @relation(fields: [userId], references: [id])
+													  post Post @relation(fields: [postId], references: [id])
+
+													    @@unique([userId, postId])
+													      @@map("reactions")
+													      }

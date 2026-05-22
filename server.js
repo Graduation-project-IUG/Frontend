@@ -1,14 +1,12 @@
-
 const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
 const pgSession = require("connect-pg-simple")(session);
+const cookieParser = require("cookie-parser");
 const { Pool } = require("pg");
-const bcrypt = require("bcryptjs");
 const { doubleCsrf } = require("csrf-csrf");
 
 const router = require('./router');
-const prisma = require("./config/connection");
 
 const app = express();
 
@@ -46,6 +44,8 @@ app.use(session({
 		      maxAge: 1000 * 60 * 60 * 24 * 7
 		    }
 }));
+
+app.use(cookieParser());
 
 const {
 	  generateToken,

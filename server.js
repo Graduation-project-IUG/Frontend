@@ -1,25 +1,84 @@
-const express = require('express');
-const cors = require('cors');
-const router = require('./router');
 
+const express = require("express");
+const cors = require("cors");
+const session = require("express-session");
+const pgSession = require("connect-pg-simple")(session);
+const { Pool } = require("pg");
+const bcrypt = require("bcryptjs");
+const { doubleCsrf } = require("csrf-csrf");
+
+const router = require('./router');
+const prisma = require("./config/connection");
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 app.use(cors({
-  origin: [
-    'https://graduation-project-swart-beta.vercel.app'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  credentials: true // Required if you are using cookies or sessions
+	  origin: process.env.FRONTEND_URL,
+	  credentials: true
 }));
+
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Backend is running");
+const pgPool = new Pool({
+	  connectionString: process.env.DATABASE_URL,
+	  ssl: process.env.NODE_ENV === "production"
+	    ? { rejectUnauthorized: false }
+	    : false
 });
+
+app.use(session({
+	  store: new pgSession({
+		      pool: pgPool,
+		      tableName: "session",
+		      createTableIfMissing: true
+		    }),
+	  name: "sid",
+	  secret: process.env.SESSION_SECRET,
+	  resave: false,
+	  saveUninitialized: false,
+	  proxy: true,
+	  cookie: {
+		      httpOnly: true,
+		      secure: process.env.NODE_ENV === "production",
+		      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+		      maxAge: 1000 * 60 * 60 * 24 * 7
+		    }
+}));
+
+const {
+	  generateToken,
+	  doubleCsrfProtection
+} = doubleCsrf({
+	  getSecret: () => process.env.CSRF_SECRET,
+	  cookieName: "__Host-psifi.x-csrf-token",
+	  cookieOptions: {
+		      httpOnly: true,
+		      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+		      secure: process.env.NODE_ENV === "production",
+		      path: "/"
+		    },
+	  size: 64,
+	  ignoredMethods: ["GET", "HEAD", "OPTIONS"],
+	  getTokenFromRequest: (req) => req.headers["x-csrf-token"]
+});
+
+
+app.get("/csrf-token", (req, res) => {
+	const csrfToken = generateToken(req, res);
+
+	res.json({csrfToken});
+});
+
+app.use(doubleCsrfProtection);
+
+
+app.use("/", router);
+
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+	  console.log(`Server running on port ${PORT}`);
 });

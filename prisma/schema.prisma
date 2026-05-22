@@ -1,92 +1,93 @@
 generator client {
-  provider = "prisma-client-js"
-  }
+	provider = "prisma-client-js"
+}
 
-  enum UserRole {
-    Admin
-      User
+enum UserRole {
+	Admin
+	User
 
         @@map("user_role")
-   }
+}
 
-  datasource db {
-    provider = "postgresql"
-      url      = env("DATABASE_URL")
-      }
+datasource db {
+	provider = "postgresql"
+	url = env("DATABASE_URL")
+}
 
-      model User {
-        id        Int       @id @default(autoincrement())
-	  email     String    @unique @db.VarChar(50)
-	    phone     String?   @unique @db.VarChar(20)
-	      password  String    @db.VarChar(256)
-	        role      UserRole    @default(User)
-		  bio       String?
-		    birthdate DateTime? @db.Date
-		      city      String?   @db.VarChar(50)
-		        createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+model User {
+	id        Int       @id @default(autoincrement())
+	email     String    @unique @db.VarChar(50)
+	phone     String?   @unique @db.VarChar(20)
+	password  String    @db.VarChar(256)
+	role      UserRole    @default(User)
+	full_name String
+	bio       String?
+	birthdate DateTime? @db.Date
+	city      String?   @db.VarChar(50)
+	createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
 
-			  posts     Post[]
-			    comments  Comment[]
-			      reports   Report[]
-			        reactions Reaction[]
+	posts     Post[]
+	comments  Comment[]
+	reports   Report[]
+	reactions Reaction[]
 
-				  @@map("users")
-				  }
+	@@map("users")
+}
 
-				  model Post {
-				    id          Int       @id @default(autoincrement())
-				      userId      Int       @map("user_id")
-				        category    String?   @db.VarChar(20)
-					  title       String    @db.VarChar(100)
-					    description String?
-					      rating      Float?
-					        createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+model Post {
+	id          Int       @id @default(autoincrement())
+	userId      Int       @map("user_id")
+	category    String   @db.VarChar(20)
+	title       String    @db.VarChar(100)
+	description String?
+	rating      Float?    @default(0)
+	createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
 
-						  user      User       @relation(fields: [userId], references: [id])
-						    comments  Comment[]
-						      reports   Report[]
-						        reactions Reaction[]
+	user      User       @relation(fields: [userId], references: [id])
+	comments  Comment[]
+	reports   Report[]
+	reactions Reaction[]
 
-							  @@map("posts")
-							  }
+	@@map("posts")
+}
 
-							  model Comment {
-							    id        Int       @id @default(autoincrement())
-							      postId    Int       @map("post_id")
-							        userId    Int       @map("user_id")
-								  content   String
-								    rating    Float?
-								      createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+model Comment {
+	id        Int       @id @default(autoincrement())
+	postId    Int       @map("post_id")
+	userId    Int       @map("user_id")
+	content   String
+	rating    Float?
+	createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
 
-								        post Post @relation(fields: [postId], references: [id])
-									  user User @relation(fields: [userId], references: [id])
+	post Post @relation(fields: [postId], references: [id])
+	user User @relation(fields: [userId], references: [id])
 
-									    @@map("comments")
-									    }
+	@@map("comments")
+}
 
-									    model Report {
-									      id        Int       @id @default(autoincrement())
-									        userId    Int       @map("user_id")
-										  postId    Int       @map("post_id")
-										    reason    String
-										      createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+model Report {
+	id        Int       @id @default(autoincrement())
+	userId    Int       @map("user_id")
+	postId    Int       @map("post_id")
+	reason    String
+	createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
 
-										        user User @relation(fields: [userId], references: [id])
-											  post Post @relation(fields: [postId], references: [id])
+	user User @relation(fields: [userId], references: [id])
+	post Post @relation(fields: [postId], references: [id])
 
-											    @@map("reports")
-											    }
+	@@map("reports")
+}
 
-											    model Reaction {
-											      id        Int       @id @default(autoincrement())
-											        userId    Int       @map("user_id")
-												  postId    Int       @map("post_id")
-												    reaction  Int
-												      createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
+model Reaction {
+	id        Int       @id @default(autoincrement())
+	userId    Int       @map("user_id")
+	postId    Int       @map("post_id")
+	reaction  Int
+	createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
 
-												        user User @relation(fields: [userId], references: [id])
-													  post Post @relation(fields: [postId], references: [id])
+	user User @relation(fields: [userId], references: [id])
+	post Post @relation(fields: [postId], references: [id])
 
-													    @@unique([userId, postId])
-													      @@map("reactions")
-													      }
+	@@unique([userId, postId])
+	@@map("reactions")
+}

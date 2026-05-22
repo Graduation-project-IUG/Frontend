@@ -1,6 +1,6 @@
-exports.serverError = (res) => {
+exports.serverError = (res, message = "Server Error") => {
 	res.status(500).json({
-		message: "Server Error"
+		message: message
 	});
 };
 
@@ -22,11 +22,8 @@ exports.createdSuccessfully = (res, message) => {
 	});
 };
 
-exports.deletedSuccessfully = (res, message) => {
-	// 204 is for No content
-	res.status(204).json({
-		message: message || "Deleted successfully"
-	});
+exports.deletedSuccessfully = (res) => {
+	res.status(204).send();
 };
 
 exports.alreadyExists = (res, message) => {

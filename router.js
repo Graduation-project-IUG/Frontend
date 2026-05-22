@@ -5,7 +5,7 @@ const userController = require("./controllers/user")
 const postController = require("./controllers/post")
 
 function requireAuth(req, res, next) {
-	if (!req.session || !req.session.userId) {
+	if (!req.session || !req.session.user_id) {
 		return res.status(401).json({
 			message: "Unauthorized"
 		});
@@ -23,6 +23,6 @@ router.get("/user/profile", requireAuth, userController.profile);
 router.post("/post", requireAuth, postController.create);
 router.get("/post/:id", requireAuth, postController.retrieve);
 router.put("/post/:id", requireAuth, postController.update);
-router.delete("/post/:id", requireAuth, postController.delete);
+router.delete("/post/:id", requireAuth, postController.remove);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../config/connection");
+const messages = require("./messages");
 
 
 const login = async (req, res) => {
@@ -23,25 +24,19 @@ const login = async (req, res) => {
 		});
 
 		if (!user) {
-			return res.status(401).json({
-				message: "Invalid email or password"
-			});
+			return messages.badRequest(res, "Invalid email or password");
 		}
 
 		const passwordMatches = await bcrypt.compare(password, user.password);
 
 		if (!passwordMatches) {
-			return res.status(401).json({
-				message: "Invalid email or password"
-			});
+			return messages.badRequest(res, "Invalid email or password");
 		}
 
 		// Regenerating session instead of updating existing one
 		req.session.regenerate((error) => {
 			if (error) {
-				return res.status(500).json({
-					message: "Could not create session"
-				});
+				return messages.serverError(res, "Could  not create session");
 			}
 
 			// Storing session data server-side, client can't edit session data
@@ -57,9 +52,7 @@ const login = async (req, res) => {
 	} catch (error) {
 		console.error("login error:", error);
 
-		res.status(500).json({
-			message: "Server error"
-		});
+		return messages.serverError(res);
 	}
 };
 
@@ -70,9 +63,7 @@ const register = async (req, res) => {
 		const existingUser = await prisma.user.findUnique({where: { email }});
 
 		if (existingUser) {
-			return res.status(409).json({
-				message: "Email already exists"
-			});
+			return messages.alreadyExists(res, "Email already exists");
 		}
 
 		const hashedPassword = await bcrypt.hash(password, 12); // 12 is the cost factor
@@ -97,11 +88,9 @@ const register = async (req, res) => {
 	} catch (error) {
 		console.error("Register error:", error);
 
-		res.status(500).json({
-			message: "Server error"
-		});
+		return messages.serverError(res);
 	}
-});
+};
 
 const profile = async (req, res) => {
 	try {
@@ -124,18 +113,14 @@ const profile = async (req, res) => {
 	} catch (error) {
 		console.error("Retrieving Profile error:", error);
 
-		res.status(500).json({
-			message: "Server error"
-		});
+		return messages.serverError(res);
 	}
 };
 
 const logout = (req, res) => {
 	req.session.destroy((error) => {
 		if (error) {
-			return res.status(500).json({
-				message: "Could not logout"
-			});
+			return messages.serverError(res, "Could not logout");
 		}
 
 		res.clearCookie("sid", {
@@ -148,7 +133,7 @@ const logout = (req, res) => {
 			message: "Logged out successfully"
 		});
 	});
-});
+};
 
 module.exports = {
 	login,

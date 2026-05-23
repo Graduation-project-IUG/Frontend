@@ -1,5 +1,6 @@
 const prisma = require("../config/connection");
 const messages = require("./messages");
+const { hasPermission } = require("../permissions/engine");
 
 const create = async (req, res) => {
 	try {
@@ -42,6 +43,12 @@ const retrieve = async (req, res) => {
 		if (req.session.user_id != user_id) {
 			return res.status(401).json({message: "Unauthorized"});	
 		}
+
+		//const user = {id: req.session.user_id, role: req.session.role};
+
+		//if(!hasPermission(user, "posts", "retrieve", post)) {
+		//	return res.status(403).json({message: "Forbidden"});	
+		//}
 
 		res.json(post);
 

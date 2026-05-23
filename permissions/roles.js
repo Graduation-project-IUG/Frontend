@@ -1,0 +1,68 @@
+const ROLES = {
+	Admin: {
+		posts: {
+			view: true,
+			create: true,
+			update: true,
+			remove: true
+		},
+		comments: {
+			view: true,
+			create: true,
+			update: true,
+			remove: true
+		},
+		reactions: {
+			view: true,
+			create: true,
+			update: true,
+			remove: true
+		},
+		reports: {
+			view: true,
+			create: true,
+			update: true,
+			remove: true
+		},
+		users: {
+			view: true,
+			create: true,
+			update: true,
+			remove: true
+		},
+	},
+	User: {
+		posts: {
+			view: (user, post) => user.id == post.userId,
+			create: true,
+			update: (user, post) => user.id == post.userId,
+			remove: (user, post) => user.id == post.userId
+		},
+		comments: {
+			view: (user, comment) => user.id == comment.userId,
+			create: true,
+			update: (user, comment) => user.id == comment.userId,
+			remove: (user, comment) => user.id == comment.userId
+		},
+		reactions: {
+			view: (user, reaction) => user.id == reaction.userId,
+			create: true,
+			update: (user, reaction) => user.id == reaction.userId,
+			remove: (user, reaction) => user.id == reaction.userId
+		},
+		reports: {
+			view: (user, report) => user.id == report.userId,
+			create: true,
+			update: (user, report) => user.id == report.userId,
+			remove: (user, report) => user.id == report.userId
+		},
+		users: {
+			view: (user, target_id) => user.id == target_id,
+			create: false,
+			update: (user, target_id) => user.id == target_id,
+			remove: (user, target_id) => user.id == target_id
+		},
+	}
+};
+
+module.exports = ROLES;

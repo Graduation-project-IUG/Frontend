@@ -1,9 +1,8 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../config/connection");
-const messages = require("./messages");
+const messages = require("../helper/messages");
 
 const HASH_COST_FACTOR = 12;
-
 
 const login = async (req, res) => {
 	try {

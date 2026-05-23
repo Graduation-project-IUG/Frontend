@@ -16,6 +16,18 @@ exports.badRequest = (res, message) => {
 	});
 };
 
+exports.Unauthenticated = (res) => {
+	res.status(401).json({
+		message: "Unauthenticated"
+	});
+};
+
+exports.Unauthorized = (res) => {
+	res.status(403).json({
+		message: "Forbidden"
+	});
+};
+
 exports.createdSuccessfully = (res, message) => {
 	res.status(201).json({
 		message: message || "Created successfully"

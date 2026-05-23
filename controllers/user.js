@@ -36,18 +36,29 @@ const login = async (req, res) => {
 		// Regenerating session instead of updating existing one
 		req.session.regenerate((error) => {
 			if (error) {
-				return messages.serverError(res, "Could  not create session");
+				messages.serverError(res);
 			}
 
-			// Storing session data server-side, client can't edit session data
 			req.session.user_id = user.id;
 			req.session.email = user.email;
 			req.session.role = user.role ? user.role.name : null;
 
-			return res.json({
-				message: "Login Successful"
+			req.session.save((error) => {
+				if (error) {
+					messages.serverError(res);
+				}
+
+				const csrfToken = generateToken(req, res, {
+					overwrite: true
+				});
+
+				return res.json({
+					message: "Login Successful",
+					csrfToken
+				});
 			});
 		});
+
 
 	} catch (error) {
 		console.error("login error:", error);

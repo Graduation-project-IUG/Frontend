@@ -52,6 +52,7 @@ const {
 	  doubleCsrfProtection
 } = doubleCsrf({
 	  getSecret: () => process.env.CSRF_SECRET,
+	  getSessionIdentifier: (req) => req.sessionID, // Bind CSRF token to session id
 	  cookieName: "__Host-psifi.x-csrf-token",
 	  cookieOptions: {
 		      httpOnly: true,
@@ -66,6 +67,7 @@ const {
 
 
 app.get("/csrf-token", (req, res) => {
+	req.session.csrfInitialized = true; // forces Express to save the session and send the sid cookie.
 	const csrfToken = generateToken(req, res);
 
 	res.json({csrfToken});

@@ -37,6 +37,12 @@ const retrieve = async (req, res) => {
 
 		const post = await prisma.post.findUnique({where: {id: post_id}});
 
+		const user_id = post.userId;
+
+		if (req.session.user_id != user_id) {
+			return res.status(401).json({message: "Unauthorized"});	
+		}
+
 		res.json(post);
 
 	} catch (error) {
@@ -64,6 +70,14 @@ const update = async (req, res) => {
 const remove = async (req, res) => {
 	try {
 		const post_id = req.params.id;	
+
+		const post = await prisma.post.findUnique({where: {id: post_id}});
+
+		const user_id = post.userId;
+
+		if (req.session.user_id != user_id) {
+			return res.status(401).json({message: "Unauthorized"});	
+		}
 
 		await prisma.post.delete({where: {id: post_id}});
 

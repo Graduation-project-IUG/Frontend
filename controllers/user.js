@@ -2,6 +2,8 @@ const bcrypt = require("bcryptjs");
 const prisma = require("../config/connection");
 const messages = require("./messages");
 
+const HASH_COST_FACTOR = 12;
+
 
 const login = async (req, res) => {
 	try {
@@ -77,7 +79,7 @@ const register = async (req, res) => {
 			return messages.alreadyExists(res, "Email already exists");
 		}
 
-		const hashedPassword = await bcrypt.hash(password, 12); // 12 is the cost factor
+		const hashedPassword = await bcrypt.hash(password, HASH_COST_FACTOR); 
 
 		const user = await prisma.user.create({
 			data: {

@@ -1,18 +1,21 @@
-exports.serverError = (res, message = "Server Error") => {
-	res.status(500).json({
-		message: message
+// Success codes with 200+
+
+exports.createdSuccessfully = (res, message = "Created successfully") => {
+	res.status(201).json({
+		message: message 
 	});
 };
 
-exports.notImplemented = (res) => {
-	res.status(501).json({
-		message: "Not Implemented"
-	});
+exports.deletedSuccessfully = (res) => {
+	res.status(204).send();
 };
 
-exports.badRequest = (res, message) => {
+
+// Errors with status 400+
+
+exports.badRequest = (res, message = "Bad request") => {
 	res.status(400).json({
-		message: message || "Bad Request"
+		message: message 
 	});
 };
 
@@ -28,18 +31,27 @@ exports.Unauthorized = (res) => {
 	});
 };
 
-exports.createdSuccessfully = (res, message) => {
-	res.status(201).json({
-		message: message || "Created successfully"
+exports.notFound = (res, message = "Not found") => {
+	res.status(404).json({
+		message: message 
 	});
 };
 
-exports.deletedSuccessfully = (res) => {
-	res.status(204).send();
+exports.alreadyExists = (res, message = "Already exists") => {
+	res.status(409).json({
+		message: message 
+	});
 };
 
-exports.alreadyExists = (res, message) => {
-	res.status(409).json({
-		message: message || "Already exists"
+// Server errors with 500+
+exports.serverError = (res, message = "Server Error") => {
+	res.status(500).json({
+		message: message
+	});
+};
+
+exports.notImplemented = (res) => {
+	res.status(501).json({
+		message: "Not Implemented"
 	});
 };

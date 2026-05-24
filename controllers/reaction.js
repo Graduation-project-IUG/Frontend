@@ -1,9 +1,6 @@
 const prisma = require("../config/connection");
 const messages = require("../helper/messages");
 
-	userId    Int       @map("user_id")
-	postId    Int       @map("post_id")
-	reaction  Int
 const create = async (req, res) => {
 	try {
 		const post_id = req.params.post_id;	

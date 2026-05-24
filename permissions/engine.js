@@ -1,7 +1,7 @@
 const ROLES = require('./roles');
 
 function hasPermission(subject, resource, action, data = null) {
-	if (!subjet || !resource || !action) return false;
+	if (!subject || !resource || !action) return false;
 	
 	// if multiple roles: user.roles.some((role) => {}); is needed
 	
@@ -18,4 +18,4 @@ function hasPermission(subject, resource, action, data = null) {
 	return false;
 };
 
-exports.module = hasPermission
+module.exports = { hasPermission };

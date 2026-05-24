@@ -1,19 +1,13 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../config/connection");
 const messages = require("../helper/messages");
+const { generateToken } = require("../middlewares/csrf");
 
 const HASH_COST_FACTOR = 12;
 
 const login = async (req, res) => {
 	try {
 		const { email, password } = req.body;
-
-		if (!isEmail(email.trim())) {
-			return messages.badRequest(res, "Invalid email");
-		} else if (!password) {
-			return messages.badRequest(res, "Empty password");
-		}
-
 
 		const user = await prisma.user.findUnique({
 			where: { email },
@@ -22,12 +16,7 @@ const login = async (req, res) => {
 				full_name: true,
 				email: true,
 				password: true,
-				role: {
-					select: {
-						id: true,
-						name: true
-					}
-				}
+				role: true
 			}
 		});
 
@@ -44,16 +33,16 @@ const login = async (req, res) => {
 		// Regenerating session instead of updating existing one
 		req.session.regenerate((error) => {
 			if (error) {
-				messages.serverError(res);
+				return messages.serverError(res);
 			}
 
 			req.session.user_id = user.id;
 			req.session.email = user.email;
-			req.session.role = user.role ? user.role.name : null;
+			req.session.role = user.role ? user.role : null;
 
 			req.session.save((error) => {
 				if (error) {
-					messages.serverError(res);
+					return messages.serverError(res);
 				}
 
 				const csrfToken = generateToken(req, res, {

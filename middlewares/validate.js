@@ -1,7 +1,7 @@
 const messages = require("../helper/messages");
 const paramsPattern = /^\d{1,9}$/
 
-const validateBody = (schema) => {
+const validate = (schema) => {
 	return (req, res, next) => {
 		const parameter = Object.values(req.params)[0];
 
@@ -20,6 +20,4 @@ const validateBody = (schema) => {
 	};
 };
 
-module.exports = {
-	  validateBody
-};
+module.exports = { validate };

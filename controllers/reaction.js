@@ -3,11 +3,11 @@ const messages = require("../helper/messages");
 
 const create = async (req, res) => {
 	try {
-		const post_id = req.params.post_id;	
+		const post_id = Number(req.params.post_id);
 		const user_id = req.session.user_id;
 		const { reaction } = req.body;	
 
-		const reaction = await prisma.reaction.create({
+		const response = await prisma.reaction.create({
 			data: {
 				postId: post_id,
 				userId: user_id,
@@ -53,7 +53,7 @@ const update = async (req, res) => {
 
 const remove = async (req, res) => {
 	try {
-		const id = req.params.id;	
+		const id = Number(req.params.id);
 
 		await prisma.reaction.delete({where: {id}});
 

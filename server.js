@@ -4,7 +4,7 @@ const session = require("express-session");
 const pgSession = require("connect-pg-simple")(session);
 const cookieParser = require("cookie-parser");
 const { Pool } = require("pg");
-const { doubleCsrf } = require("csrf-csrf");
+const { generateToken, doubleCsrfProtection } = require("./middlewares/csrf");
 
 const router = require('./router');
 
@@ -47,30 +47,18 @@ app.use(session({
 
 app.use(cookieParser());
 
-const {
-	  generateToken,
-	  doubleCsrfProtection
-} = doubleCsrf({
-	  getSecret: () => process.env.CSRF_SECRET,
-	  getSessionIdentifier: (req) => req.sessionID, // Bind CSRF token to session id
-	  cookieName: "__Host-psifi.x-csrf-token",
-	  cookieOptions: {
-		      httpOnly: true,
-		      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-		      secure: process.env.NODE_ENV === "production",
-		      path: "/"
-		    },
-	  size: 64,
-	  ignoredMethods: ["GET", "HEAD", "OPTIONS"],
-	  getTokenFromRequest: (req) => req.headers["x-csrf-token"]
-});
-
-
 app.get("/csrf-token", (req, res) => {
 	req.session.csrfInitialized = true; // forces Express to save the session and send the sid cookie.
-	const csrfToken = generateToken(req, res);
 
-	res.json({csrfToken});
+	req.session.save((error) => {
+		if (error) {
+			return res.status(500).json({ message: "Could not initialize CSRF" });
+		}
+
+		const csrfToken = generateToken(req, res);
+
+		res.json({csrfToken});
+	});
 });
 
 app.use(doubleCsrfProtection);

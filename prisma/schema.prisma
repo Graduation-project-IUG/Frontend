@@ -40,7 +40,6 @@ model Post {
 	category    String   @db.VarChar(20)
 	title       String    @db.VarChar(100)
 	description String?
-	rating      Float?    @default(0)
 	createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
 
 	user      User       @relation(fields: [userId], references: [id])
@@ -59,8 +58,8 @@ model Comment {
 	rating    Float?
 	createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
 
-	post Post @relation(fields: [postId], references: [id])
-	user User @relation(fields: [userId], references: [id])
+	post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
 	@@map("comments")
 }
@@ -72,8 +71,8 @@ model Report {
 	reason    String
 	createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
 
-	user User @relation(fields: [userId], references: [id])
-	post Post @relation(fields: [postId], references: [id])
+	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+	post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
 	@@map("reports")
 }
@@ -85,8 +84,8 @@ model Reaction {
 	reaction  Int
 	createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(0)
 
-	user User @relation(fields: [userId], references: [id])
-	post Post @relation(fields: [postId], references: [id])
+	user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+	post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
 	@@unique([userId, postId])
 	@@map("reactions")

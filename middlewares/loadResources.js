@@ -72,7 +72,7 @@ const loadReaction = async (req, res, next) => {
 			return messages.notFound(res, "Reaction not found");
 		}
 	
-		req.data = post;
+		req.data = reaction;
 
 		next();
 	} catch (error) {
@@ -81,3 +81,10 @@ const loadReaction = async (req, res, next) => {
 		return messages.serverError(res);
 	}
 }
+
+module.exports = {
+	loadPost,
+	loadComment,
+	loadReport,
+	loadReaction
+};

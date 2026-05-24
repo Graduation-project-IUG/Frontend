@@ -3,14 +3,16 @@ const messages = require("../helper/messages");
 
 const create = async (req, res) => {
 	try {
-		const { category, title, description, rating } = req.body;	
+		const { category, title, description } = req.body;	
+
+		const user_id = Number(req.session.user_id);
 
 		const post = await prisma.post.create({
 			data: {
 				category,
 				title,
-				description: description ?? null,
-				rating: rating ?? 0
+				userId: user_id,
+				description: description ?? null
 			}
 		});
 
@@ -31,7 +33,7 @@ const retrieve = async (req, res) => {
 
 const update = async (req, res) => {
 	try {
-		const post_id = req.params.id;	
+		const post_id = Number(req.params.id);
 
 		return messages.notImplemented(res);
 
@@ -46,7 +48,7 @@ const update = async (req, res) => {
 
 const remove = async (req, res) => {
 	try {
-		const post_id = req.params.id;	
+		const post_id = Number(req.params.id);	
 
 		await prisma.post.delete({where: {id: post_id}});
 

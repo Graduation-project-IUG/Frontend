@@ -18,4 +18,4 @@ function authorize(resource, action) {
 
 }
 
-exports.module = authorize;
+module.exports = { authorize };

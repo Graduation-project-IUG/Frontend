@@ -14,4 +14,4 @@ function authenticate(req, res, next) {
 	next();
 }
 
-exports.module = authenticate;
+module.exports = { authenticate };

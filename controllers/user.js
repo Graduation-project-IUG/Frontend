@@ -80,14 +80,6 @@ const register = async (req, res) => {
 	try {
 		const { full_name, email, password } = req.body;
 
-		if (!isEmail(email)) {
-			return messages.badRequest(res, "Invalid email");
-		} else if (!password) {
-			return messages.badRequest(res, "Empty password");
-		} else if () {
-
-		}
-
 		const existingUser = await prisma.user.findUnique({where: { email }});
 
 		if (existingUser) {

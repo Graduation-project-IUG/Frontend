@@ -5,14 +5,6 @@ const create = async (req, res) => {
 	try {
 		const { category, title, description, rating } = req.body;	
 
-		if (!category) {
-			return messages.badRequest(res, "Empty category");
-		}
-
-		if (!title) {
-			return messages.badRequest(res, "Empty title");
-		}
-
 		const post = await prisma.post.create({
 			data: {
 				category,

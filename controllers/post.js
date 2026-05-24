@@ -1,6 +1,5 @@
 const prisma = require("../config/connection");
-const messages = require("./messages");
-const { hasPermission } = require("../permissions/engine");
+const messages = require("../helper/messages");
 
 const create = async (req, res) => {
 	try {
@@ -33,30 +32,9 @@ const create = async (req, res) => {
 };
 
 const retrieve = async (req, res) => {
-	try {
-		const post_id = Number(req.params.id);	
+	const post = req.data;
 
-		const post = await prisma.post.findUnique({where: {id: post_id}});
-
-		const user_id = post.userId;
-
-		if (req.session.user_id != user_id) {
-			return res.status(401).json({message: "Unauthorized"});	
-		}
-
-		//const user = {id: req.session.user_id, role: req.session.role};
-
-		//if(!hasPermission(user, "posts", "retrieve", post)) {
-		//	return res.status(403).json({message: "Forbidden"});	
-		//}
-
-		res.json(post);
-
-	} catch (error) {
-		console.error("Retrieving post error: ", error);
-
-		return messages.serverError(res);
-	}
+	res.json(post);
 };
 
 const update = async (req, res) => {
@@ -77,14 +55,6 @@ const update = async (req, res) => {
 const remove = async (req, res) => {
 	try {
 		const post_id = req.params.id;	
-
-		const post = await prisma.post.findUnique({where: {id: post_id}});
-
-		const user_id = post.userId;
-
-		if (req.session.user_id != user_id) {
-			return res.status(401).json({message: "Unauthorized"});	
-		}
 
 		await prisma.post.delete({where: {id: post_id}});
 

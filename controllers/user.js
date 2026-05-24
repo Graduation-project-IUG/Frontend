@@ -1,12 +1,20 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../config/connection");
 const messages = require("../helper/messages");
+const { isEmail } = require("../helper/input_validation");
 
 const HASH_COST_FACTOR = 12;
 
 const login = async (req, res) => {
 	try {
 		const { email, password } = req.body;
+
+		if (!isEmail(email.trim())) {
+			return messages.badRequest(res, "Invalid email");
+		} else if (!password) {
+			return messages.badRequest(res, "Empty password");
+		}
+
 
 		const user = await prisma.user.findUnique({
 			where: { email },
@@ -72,6 +80,14 @@ const register = async (req, res) => {
 	try {
 		const { full_name, email, password } = req.body;
 
+		if (!isEmail(email)) {
+			return messages.badRequest(res, "Invalid email");
+		} else if (!password) {
+			return messages.badRequest(res, "Empty password");
+		} else if () {
+
+		}
+
 		const existingUser = await prisma.user.findUnique({where: { email }});
 
 		if (existingUser) {
@@ -93,10 +109,8 @@ const register = async (req, res) => {
 			}
 		});
 
-		res.status(201).json({
-			message: "Account created successfully",
-			user
-		});
+		return messages.createdSuccessfully(res, "Account created successfully");
+
 	} catch (error) {
 		console.error("Register error:", error);
 

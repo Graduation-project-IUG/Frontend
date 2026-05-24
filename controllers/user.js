@@ -1,7 +1,6 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../config/connection");
 const messages = require("../helper/messages");
-const { isEmail } = require("../helper/input_validation");
 
 const HASH_COST_FACTOR = 12;
 

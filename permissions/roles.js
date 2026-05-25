@@ -33,19 +33,19 @@ const ROLES = {
 	},
 	User: {
 		posts: {
-			view: (user, post) => user.id == post.userId,
+			view: true,
 			create: true,
 			update: (user, post) => user.id == post.userId,
 			remove: (user, post) => user.id == post.userId
 		},
 		comments: {
-			view: (user, comment) => user.id == comment.userId,
+			view: true,
 			create: true,
 			update: (user, comment) => user.id == comment.userId,
 			remove: (user, comment) => user.id == comment.userId
 		},
 		reactions: {
-			view: (user, reaction) => user.id == reaction.userId,
+			view: true,
 			create: true,
 			update: (user, reaction) => user.id == reaction.userId,
 			remove: (user, reaction) => user.id == reaction.userId

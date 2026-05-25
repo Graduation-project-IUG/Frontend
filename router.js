@@ -32,25 +32,25 @@ router.post("/user/register", validate(userValidation.register), userController.
 router.post("/auth/logout", authenticate, userController.logout);
 router.get("/user/profile", authenticate, userController.profile);
 
-router.post("/post", validate(postValidation.create), authenticate, authorize("posts", "create"), postController.create);
-router.get("/post/:id", authenticate, loadPost, authorize("posts", "view"), postController.retrieve);
-router.put("/post/:id", validate(postValidation.update), authenticate, loadPost, authorize("posts", "update"), postController.update);
-router.delete("/post/:id", authenticate, loadPost, authorize("posts", "remove"), postController.remove);
+router.post("/post", authenticate, validate(postValidation.create), authorize("posts", "create"), postController.create);
+router.get("/post/:id", authenticate, validate(), loadPost, authorize("posts", "view"), postController.retrieve);
+router.put("/post/:id", authenticate, validate(postValidation.update), loadPost, authorize("posts", "update"), postController.update);
+router.delete("/post/:id", authenticate, validate(), loadPost, authorize("posts", "remove"), postController.remove);
 
-router.post("/comment/:post_id", validate(commentValidation.create), authenticate, authorize("comments", "create"), commentController.create);
-router.get("/comment/:id", authenticate, loadComment, authorize("comments", "view"), commentController.retrieve);
-router.put("/comment/:id", validate(commentValidation.update), authenticate, loadComment, authorize("comments", "update"), commentController.update);
-router.delete("/comment/:id", authenticate, loadComment, authorize("comments", "remove"), commentController.remove);
+router.post("/comment/:post_id", authenticate, validate(commentValidation.create), loadPost, authorize("comments", "create"), commentController.create);
+router.get("/comment/:id", authenticate, validate(), loadComment, authorize("comments", "view"), commentController.retrieve);
+router.put("/comment/:id", authenticate, validate(commentValidation.update), loadComment, authorize("comments", "update"), commentController.update);
+router.delete("/comment/:id", authenticate, validate(), loadComment, authorize("comments", "remove"), commentController.remove);
 
-router.post("/report/:post_id", validate(reportValidation.create), authenticate, authorize("reports", "create"), reportController.create);
-router.get("/report/:id", authenticate, loadReport, authorize("reports", "view"), reportController.retrieve);
-router.put("/report/:id", validate(reportValidation.update), authenticate, loadReport, authorize("reports", "update"), reportController.update);
-router.delete("/report/:id", authenticate, loadReport, authorize("reports", "remove"), reportController.remove);
+router.post("/report/:post_id", authenticate, validate(reportValidation.create), loadPost, authorize("reports", "create"), reportController.create);
+router.get("/report/:id", authenticate, validate(), loadReport, authorize("reports", "view"), reportController.retrieve);
+router.put("/report/:id", authenticate, validate(reportValidation.update), loadReport, authorize("reports", "update"), reportController.update);
+router.delete("/report/:id", authenticate, validate(), loadReport, authorize("reports", "remove"), reportController.remove);
 
-router.post("/reaction/:post_id", validate(reactionValidation.create), authenticate, authorize("reactions", "create"), reactionController.create);
-router.get("/reaction/:id", authenticate, loadReaction, authorize("reactions", "view"), reactionController.retrieve);
-router.put("/reaction/:id", validate(reactionValidation.update), authenticate, loadReaction, authorize("reactions", "update"), reactionController.update);
-router.delete("/reaction/:id", authenticate, loadReaction, authorize("reactions", "remove"), reactionController.remove);
+router.post("/reaction/:post_id", authenticate, validate(reactionValidation.create), loadPost, authorize("reactions", "create"), reactionController.create);
+router.get("/reaction/:id", authenticate, validate(), loadReaction, authorize("reactions", "view"), reactionController.retrieve);
+router.put("/reaction/:id", authenticate, validate(reactionValidation.update), loadReaction, authorize("reactions", "update"), reactionController.update);
+router.delete("/reaction/:id", authenticate, validate(), loadReaction, authorize("reactions", "remove"), reactionController.remove);
 
 
 

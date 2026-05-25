@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 const prisma = require("../config/connection");
 const messages = require("../helper/messages");
-const { generateToken } = require("../middlewares/csrf");
+const { generateToken, cookieName, cookieOptions } = require("../middlewares/csrf");
 
 const HASH_COST_FACTOR = 12;
 
@@ -134,6 +134,9 @@ const logout = (req, res) => {
 			secure: process.env.NODE_ENV === "production",
 			sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
 		});
+
+		// Deletes CSRF token cookie
+		res.clearCookie(cookieName, cookieOptions);
 
 		return res.json({
 			message: "Logged out successfully"

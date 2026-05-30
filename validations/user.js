@@ -8,7 +8,7 @@ const register = z.object({
 
 const login = z.object({
 	email: z.email(),
-        password: z.string().min(1)
+        password: z.string().min(8)
 });
 
 // Not implemented yet

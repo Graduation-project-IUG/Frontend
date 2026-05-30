@@ -100,19 +100,15 @@ const register = async (req, res) => {
 
 const profile = async (req, res) => {
 	try {
-		const user_id = req.session.user_id;	
 
-		const user = await prisma.user.findUnique({
-			where: {id: user_id},
-			select: {
-				full_name: true,
-				email: true,
-				phone: true,
-				birthdate: true,
-				bio: true,
-				city: true
-			}	
-		});
+		const full_name = req.user.full_name;
+		const email = req.user.email;
+		const phone = req.user.phone;
+		const birthdate = req.user.birthdate;
+		const bio = req.user.bio;
+		const city = req.user.city;
+
+		const user = {full_name, email, phone, birthdate, bio, city};
 
 		res.json(user);
 

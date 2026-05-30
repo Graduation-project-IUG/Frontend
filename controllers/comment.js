@@ -3,7 +3,7 @@ const messages = require("../helper/messages");
 
 const create = async (req, res) => {
 	try {
-		const post_id = Number(req.params.post_id);
+		const post_id = req.params.post_id;
 		const user_id = req.session.user_id;
 		const { content, rating } = req.body;	
 
@@ -12,7 +12,7 @@ const create = async (req, res) => {
 				postId: post_id,
 				userId: user_id,
 				content, 
-				rating: rating ?? 0
+				rating 
 			}
 		});
 
@@ -40,11 +40,17 @@ const retrieve = async (req, res) => {
 
 const update = async (req, res) => {
 	try {
-		//const comment = Number(req.params.id);
+		const id = req.params.id;
+		
+		const { content, rating } = req.data;
 
-		return messages.notImplemented(res);
-
-		//await prisma.comment.update();
+		await prisma.comment.update({
+			where: { id },
+			data: {
+				content,
+				rating
+			}
+		});
 		
 	} catch (error) {
 		console.error("Updating comment error: ", error);
@@ -55,7 +61,7 @@ const update = async (req, res) => {
 
 const remove = async (req, res) => {
 	try {
-		const id = Number(req.params.id);
+		const id = req.params.id;
 
 		await prisma.comment.delete({where: {id}});
 

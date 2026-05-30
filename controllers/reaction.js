@@ -3,15 +3,25 @@ const messages = require("../helper/messages");
 
 const create = async (req, res) => {
 	try {
-		const post_id = Number(req.params.post_id);
+		const post_id = req.params.post_id;
 		const user_id = req.session.user_id;
 		const { reaction } = req.body;	
 
-		const response = await prisma.reaction.create({
-			data: {
+		// upsert: create new or update existing record
+		const response = await prisma.reaction.upsert({
+			where: {
+				userId_postId: { // compound key
+					postId: post_id, 
+					userId: user_id
+				}
+			},
+			create: {
 				postId: post_id,
 				userId: user_id,
-				reaction, 
+				reaction
+			},
+			update: {
+				reaction
 			}
 		});
 
@@ -39,10 +49,18 @@ const retrieve = async (req, res) => {
 
 const update = async (req, res) => {
 	try {
+		const id = req.params.id;
+		const { reaction } = req.data;
 
-		return messages.notImplemented(res);
+		await prisma.reaction.update({
+			where: { id },
+			data: {
+				reaction
+			}
+		});
 
-		//await prisma.reaction.update();
+		return messages.createdSuccessfully(res, "Reaction Saved Successfully");
+
 		
 	} catch (error) {
 		console.error("Updating reaction error: ", error);
@@ -53,7 +71,7 @@ const update = async (req, res) => {
 
 const remove = async (req, res) => {
 	try {
-		const id = Number(req.params.id);
+		const id = req.params.id;
 
 		await prisma.reaction.delete({where: {id}});
 

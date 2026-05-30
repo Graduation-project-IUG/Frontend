@@ -5,7 +5,7 @@ const create = async (req, res) => {
 	try {
 		const { category, title, description } = req.body;	
 
-		const user_id = Number(req.session.user_id);
+		const user_id = req.session.user_id;
 
 		const post = await prisma.post.create({
 			data: {
@@ -33,11 +33,18 @@ const retrieve = async (req, res) => {
 
 const update = async (req, res) => {
 	try {
-		const post_id = Number(req.params.id);
+		const id = req.params.id;
 
-		return messages.notImplemented(res);
+		const { category, title, description } = req.data;
 
-		//await prisma.post.update();
+		await prisma.post.update({
+			where: {id},
+			data: {
+				category,
+				title,
+				description
+			}
+		});
 		
 	} catch (error) {
 		console.error("updating post error: ", error);
@@ -48,9 +55,9 @@ const update = async (req, res) => {
 
 const remove = async (req, res) => {
 	try {
-		const post_id = Number(req.params.id);	
+		const id = req.params.id;	
 
-		await prisma.post.delete({where: {id: post_id}});
+		await prisma.post.delete({where: {id}});
 
 		return messages.deletedSuccessfully(res, "Post deleted Successfully");
 

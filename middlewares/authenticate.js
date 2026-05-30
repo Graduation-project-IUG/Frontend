@@ -8,18 +8,22 @@ function authenticate(req, res, next) {
 		return messages.Unauthenticated(res);
 	}
 
-	// Handles user deletion and roles changing after authentication
-	const user = prisma.user.findUnique({
-		where: {id: userId}
-	});
+	try {
+		// Handles user deletion and roles changing after authentication
+		const user = await prisma.user.findUnique({
+			where: {id: userId}
+		});
+	
+		if (!user) {
+			return messages.Unauthenticated(res);
+		}
+	
+		req.user = user;
 
-	if (!user) {
-		return messages.Unauthenticated(res);
+		next();
+	} catch (error) {
+		next(error);
 	}
-
-	req.user = user;
-
-	next();
 }
 
 module.exports = { authenticate };

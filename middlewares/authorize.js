@@ -4,7 +4,10 @@ const { hasPermission } = require("../permissions/engine");
 function authorize(resource, action) {
 	return function (req, res, next) {
 
-		const user = req.user;
+		const id = req.user.id;
+		const role = req.user.role;
+
+		const user = {id, role};
 		const data = req.data || null;
 	
 		const allowed = hasPermission(user, resource, action, data);

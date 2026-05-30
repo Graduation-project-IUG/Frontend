@@ -1,3 +1,4 @@
+const prisma = require("../config/connection");
 const messages = require('../helper/messages');
 
 function authenticate(req, res, next) {
@@ -7,9 +8,16 @@ function authenticate(req, res, next) {
 		return messages.Unauthenticated(res);
 	}
 
-	const user_role = req.session.role;
-	
-	req.user = {id: userId, role: user_role}
+	// Handles user deletion and roles changing after authentication
+	const user = prisma.user.findUnique({
+		where: {id: userId}
+	});
+
+	if (!user) {
+		return messages.Unauthenticated(res);
+	}
+
+	req.user = user;
 
 	next();
 }

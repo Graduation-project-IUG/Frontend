@@ -3,7 +3,7 @@ const messages = require("../helper/messages");
 
 const loadPost = async (req, res, next) => {
 	try {
-		const id = Number(req.params.id);
+		const id = req.params.id;
 		
 		const post = await prisma.post.findUnique({where:{ id }});
 
@@ -23,7 +23,7 @@ const loadPost = async (req, res, next) => {
 
 const loadComment = async (req, res, next) => {
 	try {
-		const id = Number(req.params.id);
+		const id = req.params.id;
 		
 		const comment = await prisma.comment.findUnique({where:{ id }});
 
@@ -44,7 +44,7 @@ const loadComment = async (req, res, next) => {
 
 const loadReport = async (req, res, next) => {
 	try {
-		const id = Number(req.params.id);
+		const id = req.params.id;
 		
 		const report = await prisma.report.findUnique({where:{ id }});
 
@@ -64,7 +64,7 @@ const loadReport = async (req, res, next) => {
 
 const loadReaction = async (req, res, next) => {
 	try {
-		const id = Number(req.params.id);
+		const id = req.params.id;
 		
 		const reaction = await prisma.reaction.findUnique({where:{ id }});
 

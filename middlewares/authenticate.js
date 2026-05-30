@@ -1,7 +1,7 @@
 const prisma = require("../config/connection");
 const messages = require('../helper/messages');
 
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
 	const userId = req.session?.user_id;	
 
 	if (!userId) {

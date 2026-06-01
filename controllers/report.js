@@ -41,7 +41,7 @@ const update = async (req, res) => {
 	try {
 		const id = req.params.id;	
 
-		const { reason } = req.data;
+		const { reason } = req.body;
 
 		await prisma.report.update({
 			where: { id },

@@ -42,7 +42,7 @@ const update = async (req, res) => {
 	try {
 		const id = req.params.id;
 		
-		const { content, rating } = req.data;
+		const { content, rating } = req.body;
 
 		await prisma.comment.update({
 			where: { id },

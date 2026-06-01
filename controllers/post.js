@@ -35,7 +35,7 @@ const update = async (req, res) => {
 	try {
 		const id = req.params.id;
 
-		const { category, title, description } = req.data;
+		const { category, title, description } = req.body;
 
 		await prisma.post.update({
 			where: {id},

@@ -50,7 +50,7 @@ const retrieve = async (req, res) => {
 const update = async (req, res) => {
 	try {
 		const id = req.params.id;
-		const { reaction } = req.data;
+		const { reaction } = req.body;
 
 		await prisma.reaction.update({
 			where: { id },

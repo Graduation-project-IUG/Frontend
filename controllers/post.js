@@ -45,6 +45,8 @@ const update = async (req, res) => {
 				description
 			}
 		});
+
+		return messages.success(res, "Post updated successfully");
 		
 	} catch (error) {
 		console.error("updating post error: ", error);

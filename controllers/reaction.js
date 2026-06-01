@@ -59,7 +59,7 @@ const update = async (req, res) => {
 			}
 		});
 
-		return messages.createdSuccessfully(res, "Reaction Saved Successfully");
+		return messages.success(res, "Reaction updated successfully");
 
 		
 	} catch (error) {

@@ -49,6 +49,8 @@ const update = async (req, res) => {
 				reason
 			}
 		});
+
+		return messages.success(res, "Report updated successfully");
 		
 	} catch (error) {
 		console.error("Updating report error: ", error);

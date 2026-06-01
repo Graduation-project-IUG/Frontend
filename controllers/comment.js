@@ -51,6 +51,8 @@ const update = async (req, res) => {
 				rating
 			}
 		});
+
+		return messages.success(res, "Comment updated successfully");
 		
 	} catch (error) {
 		console.error("Updating comment error: ", error);

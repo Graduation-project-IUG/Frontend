@@ -1,5 +1,11 @@
 // Success codes with 200+
 
+exports.success = (res, message = "Operation successful") => {
+	res.status(200).json({
+		message: message 
+	});
+};
+
 exports.createdSuccessfully = (res, message = "Created successfully") => {
 	res.status(201).json({
 		message: message 

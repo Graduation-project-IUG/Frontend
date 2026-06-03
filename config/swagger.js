@@ -11,24 +11,10 @@ const options = {
 		},
 		servers: [
 			{
-				url: "https://graduation-project-s30r.onrender.com",
-				description: "Production server",
+				url: "/api"
 			},
 		],
-		components: {
-			securitySchemes: {
-				cookieAuth: {
-					type: "apiKey",
-					in: "cookie",
-					name: "sid",
-				},
-				csrfToken: {
-					type: "apiKey",
-					in: "header",
-					name: "x-csrf-token",
-				},
-			},
-		},
+		
 	},
 	apis: [
 		path.join(__dirname, "../controllers/*.js"),

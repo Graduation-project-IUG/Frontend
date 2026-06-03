@@ -30,6 +30,9 @@ const ROLES = {
 			update: true,
 			remove: true
 		},
+		api: {
+			view: true
+		}
 	},
 	User: {
 		posts: {
@@ -62,6 +65,9 @@ const ROLES = {
 			update: (user, target_id) => user.id == target_id,
 			remove: (user, target_id) => user.id == target_id
 		},
+		api: {
+			view: false
+		}
 	}
 };
 

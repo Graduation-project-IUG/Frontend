@@ -22,7 +22,7 @@ const {
 
 
 // to include cookies
-const swaggeOptions = {
+const swaggerOptions = {
 	swaggerOptions: {
 		requestInterceptor: (req) => {
 			req.credentials = "include";

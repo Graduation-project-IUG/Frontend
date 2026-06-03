@@ -40,7 +40,11 @@ const reactionController = require("./controllers/reaction")
 
 
 // Swagger documentation
-router.get("/api-docs", authenticate, authorize("api", "view"), swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerOptions));
+// We need use to server its subfolders and files
+router.get("/api-docs", (req, res) => {
+	  res.redirect("/api-docs/");
+});
+router.use("/api-docs", authenticate, authorize("api", "view"), swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerOptions));
 
 // Routes
 

@@ -37,7 +37,7 @@ const reactionController = require("./controllers/reaction")
 
 
 // Swagger documentation
-app.use("/api-docs", authenticate, authorize("api", "view"), swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerOptions));
+router.get("/api-docs", authenticate, authorize("api", "view"), swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerOptions));
 
 // Routes
 

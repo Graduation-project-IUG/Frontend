@@ -7,11 +7,20 @@ const create = async (req, res) => {
 		const user_id = req.session.user_id;
 		const { reason } = req.body;	
 
-		const report = await prisma.report.create({
-			data: {
+		const report = await prisma.report.upsert({
+			where: {
+				userId_postId: { // compound key
+					postId: post_id, 
+					userId: user_id
+				}
+			},
+			create: {
 				postId: post_id,
 				userId: user_id,
-				reason, 
+				reason
+			},
+			update: {
+				reason
 			}
 		});
 

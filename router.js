@@ -26,7 +26,7 @@ const swaggeOptions = {
 			return req;
 		},
 	}
-})
+}
 
 // Controllers
 const userController = require("./controllers/user")

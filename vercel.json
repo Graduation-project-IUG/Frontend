@@ -6,10 +6,17 @@
       "frontend": true
     }
   },
-  "rewrites": [
+  "redirects": [
     {
       "source": "/api-docs",
-      "destination": "https://graduation-project-s30r.onrender.com/api-docs"
+      "destination": "/api-docs/",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api-docs/",
+      "destination": "https://graduation-project-s30r.onrender.com/api-docs/"
     },
     {
       "source": "/api-docs/:path*",

@@ -17,6 +17,17 @@ const {
 	loadReaction
 } = require("./middlewares/loadResources");
 
+
+// to include cookies
+const swaggeOptions = {
+	swaggerOptions: {
+		requestInterceptor: (req) => {
+			req.credentials = "include";
+			return req;
+		},
+	}
+})
+
 // Controllers
 const userController = require("./controllers/user")
 const postController = require("./controllers/post")
@@ -24,6 +35,9 @@ const commentController = require("./controllers/comment")
 const reportController = require("./controllers/report")
 const reactionController = require("./controllers/reaction")
 
+
+// Swagger documentation
+app.use("/api-docs", authenticate, authorize("api", "view"), swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerOptions));
 
 // Routes
 

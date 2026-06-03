@@ -3,7 +3,7 @@ const messages = require("../helper/messages");
 
 const loadPost = async (req, res, next) => {
 	try {
-		const id = req.params.id;
+		const id = req.params.id || req.params.post_id;
 		
 		const post = await prisma.post.findUnique({where:{ id }});
 

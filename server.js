@@ -27,22 +27,24 @@ const pgPool = new Pool({
 });
 
 app.use(session({
-	  store: new pgSession({
-		      pool: pgPool,
-		      tableName: "session",
-		      createTableIfMissing: true
-		    }),
-	  name: "sid",
-	  secret: process.env.SESSION_SECRET,
-	  resave: false,
-	  saveUninitialized: false,
-	  proxy: true,
-	  cookie: {
-		      httpOnly: true,
-		      secure: process.env.NODE_ENV === "production",
-		      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-		      maxAge: 1000 * 60 * 60 * 24 * 7
-		    }
+	store: new pgSession({
+		pool: pgPool,
+		tableName: "session",
+		createTableIfMissing: true
+	}),
+	name: "sid",
+	secret: process.env.SESSION_SECRET,
+	resave: false,
+  	saveUninitialized: false,
+	proxy: true,
+	cookie: {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === "production",
+		sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+		partitioned: true,
+		path: "/",
+		maxAge: 1000 * 60 * 60 * 24 * 7
+	}
 }));
 
 app.use(cookieParser());

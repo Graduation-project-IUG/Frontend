@@ -5,5 +5,11 @@
       "*": false,
       "frontend": true
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api-docs/:path*",
+      "destination": "https://graduation-project-s30r.onrender.com/api-docs/:path*"
+    }
+  ]
 }

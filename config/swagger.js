@@ -10,10 +10,6 @@ const options = {
 		},
 		servers: [
 			{
-				url: "http://localhost:3000",
-				description: "Local server",
-			},
-			{
 				url: "https://graduation-project-s30r.onrender.com",
 				description: "Production server",
 			},
@@ -33,7 +29,9 @@ const options = {
 			},
 		},
 	},
-	apis: ["./controllers/*.js"],
+	apis: [
+		path.join(__dirname, "../controllers/*.js"),
+	],
 };
 
 const swaggerSpec = swaggerJsdoc(options);

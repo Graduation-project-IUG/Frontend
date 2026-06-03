@@ -25,6 +25,45 @@ const create = async (req, res) => {
 	}
 };
 
+/**
+ *  * @openapi
+ *  * /posts/{id}:
+ *  *   get:
+ *  *     summary: Get a single post
+ *  *     description: Returns one post by its ID.
+ *  *     tags:
+ *  *       - Posts
+ *  *     parameters:
+ *  *       - in: path
+ *  *         name: id
+ *  *         required: true
+ *  *         schema:
+ *  *           type: integer
+ *  *         description: Post ID
+ *  *     responses:
+ *  *       200:
+ *  *         description: Post loaded successfully
+ *  *         content:
+ *  *           application/json:
+ *  *             schema:
+ *  *               type: object
+ *  *               properties:
+ *  *                 id:
+ *  *                   type: integer
+ *  *                   example: 1
+ *  *                 category:
+ *  *                   type: string
+ *  *                   example: News
+ *  *                 title:
+ *  *                   type: string
+ *  *                   example: My first post
+ *  *                 description:
+ *  *                   type: string
+ *  *                   example: This is the post description
+ *  *       404:
+ *  *         description: Post not found
+ *  */
+
 const retrieve = async (req, res) => {
 	const post = req.data;
 

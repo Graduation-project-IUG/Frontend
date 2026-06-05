@@ -29,7 +29,7 @@
           <p>أدخل بيانات حسابك للوصول للمنصة</p>
         </div>
 
-        <form action="/api/auth/login" method="POST">
+        <form id="login-form" action="/api/auth/login" method="POST">
           <div class="form-group">
             <label class="form-label">البريد الإلكتروني</label>
             <input name="email" type="email" class="form-input" placeholder="example@email.com" required>
@@ -84,5 +84,6 @@
   </div>
 
   <script src="../js/main.js"></script>
+  <script src="../js/api/login.js"></script>
 </body>
 </html>

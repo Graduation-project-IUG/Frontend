@@ -11,7 +11,7 @@ const messages = require("../helper/messages");
  *       - Posts
  *     security:
  *       - cookieAuth: []
- *       - csrfToken: []
+ *         csrfToken: []
  *     requestBody:
  *       required: true
  *       content:
@@ -137,7 +137,7 @@ const retrieve = async (req, res) => {
  *       - Posts
  *     security:
  *       - cookieAuth: []
- *       - csrfToken: []
+ *         csrfToken: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -221,7 +221,7 @@ const update = async (req, res) => {
  *       - Posts
  *     security:
  *       - cookieAuth: []
- *       - csrfToken: []
+ *         csrfToken: []
  *     parameters:
  *       - in: path
  *         name: id

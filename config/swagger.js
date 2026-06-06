@@ -1,6 +1,6 @@
 const path = require("path");
 const swaggerJsdoc = require("swagger-jsdoc");
-const { fetchCsrf } = require("../middleswares/csrf");
+const { fetchCsrf } = require("../middlewares/csrf");
 
 const options = {
 	definition: {

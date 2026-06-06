@@ -3,10 +3,10 @@ const { doubleCsrf } = require("csrf-csrf");
 const cookieName = process.env.NODE_ENV === "production" ? "__Host-psifi.x-csrf-token" : "psifi.x-csrf-token";
 const cookieOptions = {
 	httpOnly: true,
-	sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-	secure: process.env.NODE_ENV === "production",
-	path: "/",
-	partitioned: true
+	sameSite: "lax",
+	secure: true,
+	maxAge: 1000 * 60 * 60 * 24 * 7,
+	path: "/"
 };
 
 

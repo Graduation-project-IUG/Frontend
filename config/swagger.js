@@ -1,6 +1,5 @@
 const path = require("path");
 const swaggerJsdoc = require("swagger-jsdoc");
-const { fetchCsrf } = require("../middlewares/csrf");
 
 const options = {
 	definition: {
@@ -27,6 +26,8 @@ const swaggerOptions = {
    		withCredentials: true,
     		persistAuthorization: true,
 
+
+		// This runs client-side code
     		requestInterceptor: async (req) => {
       			req.credentials = "include";
 
@@ -44,7 +45,22 @@ const swaggerOptions = {
 			let csrfToken = sessionStorage.getItem("csrfToken");
 
 			if (!csrfToken) {
-				csrfToken = await fetchCsrf(req);
+				const csrfResponse = await fetch("/api/csrf-token", {
+					method: "GET",
+        				credentials: "include",
+        				headers: {
+       						Accept: "application/json"
+        				}
+				});
+
+				if (!csrfResponse.ok) {
+        				console.error("Could not get CSRF token");
+        				return req;
+      				}
+
+      				const data = await csrfResponse.json();
+
+				csrfToken = data.csrfToken;
 
 				sessionStorage.setItem("csrfToken", csrfToken);
 			}
@@ -67,5 +83,7 @@ const swaggerOptions = {
 
 const swaggerSpec = swaggerJsdoc(options);
 
-module.exports = swaggerSpec;
-module.exports = swaggerOptions;
+module.exports = { 
+	swaggerSpec,
+	swaggerOptions
+}

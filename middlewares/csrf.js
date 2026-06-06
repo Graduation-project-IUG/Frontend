@@ -9,6 +9,26 @@ const cookieOptions = {
 	partitioned: true
 };
 
+
+const fetchCsrf = async (req) => {
+	const csrfResponse = await fetch("/api/csrf-token", {
+		method: "GET",
+        	credentials: "include",
+        	headers: {
+       			Accept: "application/json"
+        	}
+	});
+
+	if (!csrfResponse.ok) {
+        	console.error("Could not get CSRF token");
+        	return req;
+      	}
+
+      	const data = await csrfResponse.json();
+
+	return data.csrfToken;
+};
+
 const {
 	generateToken,
 	doubleCsrfProtection
@@ -26,5 +46,6 @@ module.exports = {
 	generateToken,
 	doubleCsrfProtection,
 	cookieName,
-	cookieOptions
+	cookieOptions,
+	fetchCsrf
 };

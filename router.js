@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const swaggerUi = require("swagger-ui-express");
-const swaggerSpec = require("./config/swagger");
+const { swaggerOptions, swaggerSpec } = require("./config/swagger");
 
 
 // middlewares
@@ -21,16 +21,6 @@ const {
 } = require("./middlewares/loadResources");
 
 
-// to include cookies
-const swaggerOptions = {
-	swaggerOptions: {
-		requestInterceptor: (req) => {
-			req.credentials = "include";
-			return req;
-		},
-	}
-}
-
 // Controllers
 const userController = require("./controllers/user")
 const postController = require("./controllers/post")
@@ -40,7 +30,7 @@ const reactionController = require("./controllers/reaction")
 
 
 // Swagger documentation
-// We need use to server its subfolders and files
+// We need use instead of get to serve swagger subfolders and files
 router.use("/api-docs", authenticate, authorize("api", "view"), swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerOptions));
 
 // Routes

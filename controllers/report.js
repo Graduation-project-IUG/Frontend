@@ -1,6 +1,58 @@
 const prisma = require("../config/connection");
 const messages = require("../helper/messages");
 
+/**
+ * @openapi
+ * /report/{post_id}:
+ *   post:
+ *     summary: Save a report
+ *     description: Creates a new report for a post, or updates the current user's existing report on that post.
+ *     tags:
+ *       - Reports
+ *     security:
+ *       - cookieAuth: []
+ *         csrfToken: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Post ID that the report belongs to
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 example: This post contains inappropriate content.
+ *     responses:
+ *       201:
+ *         description: Report saved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Report Saved Successfully
+ *       400:
+ *         description: Bad request / validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden / invalid CSRF token
+ *       404:
+ *         description: Post not found
+ *       500:
+ *         description: Internal server error
+ */
 const create = async (req, res) => {
 	try {
 		const post_id = req.params.post_id;	
@@ -33,6 +85,52 @@ const create = async (req, res) => {
 	}
 };
 
+/**
+ * @openapi
+ * /report/{id}:
+ *   get:
+ *     summary: Get a single report
+ *     description: Returns one report by its ID.
+ *     tags:
+ *       - Reports
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Report ID
+ *     responses:
+ *       200:
+ *         description: Report loaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   example: 1
+ *                 postId:
+ *                   type: integer
+ *                   example: 1
+ *                 userId:
+ *                   type: integer
+ *                   example: 7
+ *                 reason:
+ *                   type: string
+ *                   example: This post contains inappropriate content.
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Report not found
+ *       500:
+ *         description: Internal server error
+ */
 const retrieve = async (req, res) => {
 	try {
 		const report = req.data;
@@ -46,6 +144,58 @@ const retrieve = async (req, res) => {
 	}
 };
 
+/**
+ * @openapi
+ * /report/{id}:
+ *   put:
+ *     summary: Update a report
+ *     description: Updates an existing report by its ID.
+ *     tags:
+ *       - Reports
+ *     security:
+ *       - cookieAuth: []
+ *         csrfToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Report ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 example: Updated report reason.
+ *     responses:
+ *       200:
+ *         description: Report updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Report updated successfully
+ *       400:
+ *         description: Bad request / validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden / invalid CSRF token
+ *       404:
+ *         description: Report not found
+ *       500:
+ *         description: Internal server error
+ */
 const update = async (req, res) => {
 	try {
 		const id = req.params.id;	
@@ -68,6 +218,44 @@ const update = async (req, res) => {
 	}
 };
 
+/**
+ * @openapi
+ * /report/{id}:
+ *   delete:
+ *     summary: Delete a report
+ *     description: Deletes an existing report by its ID.
+ *     tags:
+ *       - Reports
+ *     security:
+ *       - cookieAuth: []
+ *         csrfToken: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Report ID
+ *     responses:
+ *       200:
+ *         description: Report deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Report deleted Successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden / invalid CSRF token
+ *       404:
+ *         description: Report not found
+ *       500:
+ *         description: Internal server error
+ */
 const remove = async (req, res) => {
 	try {
 		const id = req.params.id;	

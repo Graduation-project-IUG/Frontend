@@ -5,8 +5,59 @@ const { generateToken, cookieName, cookieOptions } = require("../middlewares/csr
 
 const HASH_COST_FACTOR = 12;
 
+/**
+ * @openapi
+ * /auth/login:
+ *   post:
+ *     summary: Login user
+ *     description: Authenticates a user, regenerates the session, stores user data in the session, and returns a CSRF token.
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: StrongPassword123
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Login Successful
+ *                 csrfToken:
+ *                   type: string
+ *                   example: csrf-token-value
+ *       400:
+ *         description: Invalid email or password / validation error
+ *       500:
+ *         description: Internal server error
+ */
 const login = async (req, res) => {
 	try {
+		const isAuthenticated = req.session.user_id;
+		
+		if (isAuthenticated) {
+			return messages.alreadyExists(res, "User is logged in already");
+		}
+
 		const { email, password } = req.body;
 
 		const user = await prisma.user.findUnique({
@@ -64,6 +115,54 @@ const login = async (req, res) => {
 	}
 };
 
+/**
+ * @openapi
+ * /user/register:
+ *   post:
+ *     summary: Register user
+ *     description: Creates a new user account after checking that the email is not already registered.
+ *     tags:
+ *       - Users
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - full_name
+ *               - email
+ *               - password
+ *             properties:
+ *               full_name:
+ *                 type: string
+ *                 example: Ahmad Ali
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 example: StrongPassword123
+ *     responses:
+ *       201:
+ *         description: Account created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Account created successfully
+ *       400:
+ *         description: Bad request / validation error
+ *       409:
+ *         description: Email already exists
+ *       500:
+ *         description: Internal server error
+ */
 const register = async (req, res) => {
 	try {
 		const { full_name, email, password } = req.body;
@@ -98,6 +197,55 @@ const register = async (req, res) => {
 	}
 };
 
+/**
+ * @openapi
+ * /user/profile:
+ *   get:
+ *     summary: Get user profile
+ *     description: Returns the profile information of the currently authenticated user.
+ *     tags:
+ *       - Users
+ *     security:
+ *       - cookieAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile loaded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 full_name:
+ *                   type: string
+ *                   example: Ahmad Ali
+ *                 email:
+ *                   type: string
+ *                   format: email
+ *                   example: user@example.com
+ *                 phone:
+ *                   type: string
+ *                   nullable: true
+ *                   example: "+970599000000"
+ *                 birthdate:
+ *                   type: string
+ *                   format: date
+ *                   nullable: true
+ *                   example: "2000-01-15"
+ *                 bio:
+ *                   type: string
+ *                   nullable: true
+ *                   example: Software engineering student.
+ *                 city:
+ *                   type: string
+ *                   nullable: true
+ *                   example: Gaza
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Internal server error
+ */
 const profile = async (req, res) => {
 	try {
 
@@ -119,6 +267,35 @@ const profile = async (req, res) => {
 	}
 };
 
+/**
+ * @openapi
+ * /auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     description: Destroys the current session and clears both the session cookie and CSRF cookie.
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - cookieAuth: []
+ *         csrfToken: []
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Logged out successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden / invalid CSRF token
+ *       500:
+ *         description: Internal server error / could not logout
+ */
 const logout = (req, res) => {
 	req.session.destroy((error) => {
 		if (error) {

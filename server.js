@@ -62,6 +62,14 @@ app.get("/csrf-token", (req, res) => {
 	});
 });
 
+app.get("/keep-alive", (req, res) => {
+	console.log(req);
+
+	res.status(200).json({
+		message: "Kept alive successfully"
+	})
+});
+
 app.use(doubleCsrfProtection);
 
 

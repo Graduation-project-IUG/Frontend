@@ -1,5 +1,6 @@
 const loginForm = document.getElementById("login-form");
 
+// test
 async function getCsrfToken() {
 	const response = await fetch("/api/csrf-token", {
 		method: "GET",

@@ -56,15 +56,22 @@ app.get("/csrf-token", (req, res) => {
 			return res.status(500).json({ message: "Could not initialize CSRF" });
 		}
 
-		const csrfToken = generateToken(req, res);
+		try {
+			const overwrite = false;
+			const validateOnReuse = false;
+			
+			// this issues a new token if it's only invalid, the older version crashed the app when the token is invalid
+			const csrfToken = generateToken(req, res, overwrite, validateOnReuse);
 
-		res.json({csrfToken});
+			return res.json({csrfToken});
+
+		} catch (error) {
+			return next(error);
+		}
 	});
 });
 
 app.get("/keep-alive", (req, res) => {
-	console.log(req);
-
 	res.status(200).json({
 		message: "Kept alive successfully"
 	})

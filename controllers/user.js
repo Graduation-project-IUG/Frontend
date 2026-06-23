@@ -96,9 +96,8 @@ const login = async (req, res) => {
 					return messages.serverError(res);
 				}
 
-				const csrfToken = generateToken(req, res, {
-					overwrite: true
-				});
+				// Issues and overwrites a new token everytime it's invoked
+				const csrfToken = generateToken(req, res, true);
 
 				return res.json({
 					message: "Login Successful",

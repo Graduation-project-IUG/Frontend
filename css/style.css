@@ -2458,3 +2458,53 @@ textarea.form-input {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--gray-400);
 }
+
+
+
+/* ===== Frontend integration improvements ===== */
+.empty-state {
+  background: var(--white);
+  border: 1px dashed var(--gray-200);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  text-align: center;
+  color: var(--gray-600);
+}
+.empty-state h3 { color: var(--gray-900); margin-bottom: .5rem; }
+.empty-state code {
+  direction: ltr;
+  display: inline-block;
+  background: var(--gray-100);
+  color: var(--primary);
+  padding: .1rem .35rem;
+  border-radius: var(--radius-sm);
+}
+.alert-note {
+  background: var(--warning-light);
+  color: var(--warning);
+  border-radius: var(--radius-xl);
+  padding: 1rem;
+  font-size: .875rem;
+}
+.rating-select {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: .5rem;
+}
+.rating-select label {
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  padding: .75rem;
+  text-align: center;
+  cursor: pointer;
+  background: var(--white);
+}
+.rating-select input { margin-left: .25rem; accent-color: var(--primary); }
+.dashboard-actions-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:1rem;
+  flex-wrap:wrap;
+  margin-bottom:1.5rem;
+}

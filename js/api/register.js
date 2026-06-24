@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("login-form");
+  const form = document.getElementById("register-form");
   if (!form || !window.MultaqaAPI) return;
 
   form.addEventListener("submit", async (event) => {
@@ -9,19 +9,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       submitButton.disabled = true;
-      const data = await MultaqaAPI.apiFetch("/auth/login", {
+      await MultaqaAPI.apiFetch("/user/register", {
         method: "POST",
         body: {
+          full_name: formData.get("full_name"),
           email: formData.get("email"),
           password: formData.get("password"),
-          rememberMe: formData.get("rememberMe") === "on",
         },
       });
-
-      if (data?.csrfToken) sessionStorage.setItem("csrfToken", data.csrfToken);
-      window.location.href = "/pages/dashboard.html";
+      MultaqaAPI.notify("تم إنشاء الحساب بنجاح. يمكنك تسجيل الدخول الآن.");
+      window.location.href = "/pages/login.html";
     } catch (error) {
-      MultaqaAPI.notify(error.message || "تعذر تسجيل الدخول", "error");
+      MultaqaAPI.notify(error.message || "تعذر إنشاء الحساب", "error");
     } finally {
       submitButton.disabled = false;
     }

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة التحكم - ملتقى</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="dashboard-body">
+    <!-- Sidebar Overlay -->
+    <div class="dashboard-sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Sidebar -->
+    <aside class="dashboard-sidebar" id="dashboardSidebar">
+      <div class="dashboard-sidebar-header">
+        <a href="../index.html" class="logo">ملتقى</a>
+        <button id="sidebarClose" style="background:none;border:none;padding:0.5rem;color:var(--gray-500);cursor:pointer;display:block;" onclick="document.getElementById('dashboardSidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open');">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="dashboard.html" class="active">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+          لوحة التحكم
+        </a>
+        <a href="dashboard-users.html">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          المستخدمين
+        </a>
+        <a href="dashboard-categories.html">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          التصنيفات
+        </a>
+        <a href="dashboard-reports.html">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          الإبلاغات
+        </a>
+      </nav>
+      <div class="dashboard-sidebar-footer">
+        <a href="../index.html">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          العودة للموقع
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="dashboard-main">
+      <!-- Top Bar -->
+      <header class="dashboard-topbar">
+        <div class="dashboard-topbar-inner">
+          <div class="dashboard-topbar-left">
+            <button id="sidebarToggle" style="background:none;border:none;padding:0.5rem;color:var(--gray-500);cursor:pointer;display:block;" onclick="document.getElementById('dashboardSidebar').classList.add('open');document.getElementById('sidebarOverlay').classList.add('open');">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            </button>
+            <h1>لوحة التحكم</h1>
+          </div>
+          <div class="dashboard-topbar-right">
+            <div class="dashboard-topbar-search">
+              <input type="text" placeholder="بحث...">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </div>
+            <button style="position:relative;padding:0.5rem;color:var(--gray-500);border-radius:var(--radius);">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              <span style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--danger);border-radius:50%;"></span>
+            </button>
+            <a href="profile.html"><img src="../images/avatar-saeed.jpg" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--gray-200);"></a>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <div class="dashboard-content">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <span class="stat-card-badge up">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+                8.5%
+              </span>
+            </div>
+            <h3>40,689</h3>
+            <div class="title">المستخدمين</div>
+            <div class="period">مستخدم جديد أمس</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+              </div>
+              <span class="stat-card-badge up">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+                1.3%
+              </span>
+            </div>
+            <h3>2541</h3>
+            <div class="title">الإبلاغات</div>
+            <div class="period">زيادة خلال الأمس</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-icon">
+                <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              </div>
+              <span class="stat-card-badge down">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/></svg>
+                4.3%
+              </span>
+            </div>
+            <h3>185,564</h3>
+            <div class="title">عدد المراجعات</div>
+            <div class="period">هبوط خلال الأسبوع الأخير</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-icon">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              </div>
+              <span class="stat-card-badge up">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+                1.8%
+              </span>
+            </div>
+            <h3>266</h3>
+            <div class="title">التصنيفات</div>
+            <div class="period">مراجعة إضافية خلال أسبوع</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div style="display:grid;grid-template-columns:1fr;gap:1.5rem;margin-top:1.5rem;">
+          <div class="stat-card" style="padding:1.5rem;">
+            <h3 style="font-weight:700;color:var(--gray-900);margin-bottom:1rem;">إحصائيات المراجعات</h3>
+            <div style="display:flex;align-items:flex-end;justify-content:space-around;gap:0.5rem;height:200px;">
+              <div style="flex:1;text-align:center;"><div style="height:130px;background:var(--primary);border-radius:var(--radius-sm) var(--radius-sm) 0 0;"></div><span style="font-size:0.625rem;color:var(--gray-500);margin-top:0.25rem;display:block;">يناير</span></div>
+              <div style="flex:1;text-align:center;"><div style="height:90px;background:var(--primary);border-radius:var(--radius-sm) var(--radius-sm) 0 0;"></div><span style="font-size:0.625rem;color:var(--gray-500);margin-top:0.25rem;display:block;">فبراير</span></div>
+              <div style="flex:1;text-align:center;"><div style="height:160px;background:var(--primary);border-radius:var(--radius-sm) var(--radius-sm) 0 0;"></div><span style="font-size:0.625rem;color:var(--gray-500);margin-top:0.25rem;display:block;">مارس</span></div>
+              <div style="flex:1;text-align:center;"><div style="height:110px;background:var(--primary);border-radius:var(--radius-sm) var(--radius-sm) 0 0;"></div><span style="font-size:0.625rem;color:var(--gray-500);margin-top:0.25rem;display:block;">أبريل</span></div>
+              <div style="flex:1;text-align:center;"><div style="height:140px;background:var(--primary);border-radius:var(--radius-sm) var(--radius-sm) 0 0;"></div><span style="font-size:0.625rem;color:var(--gray-500);margin-top:0.25rem;display:block;">مايو</span></div>
+              <div style="flex:1;text-align:center;"><div style="height:180px;background:var(--primary);border-radius:var(--radius-sm) var(--radius-sm) 0 0;"></div><span style="font-size:0.625rem;color:var(--gray-500);margin-top:0.25rem;display:block;">يونيو</span></div>
+              <div style="flex:1;text-align:center;"><div style="height:120px;background:var(--primary);border-radius:var(--radius-sm) var(--radius-sm) 0 0;"></div><span style="font-size:0.625rem;color:var(--gray-500);margin-top:0.25rem;display:block;">يوليو</span></div>
+              <div style="flex:1;text-align:center;"><div style="height:150px;background:var(--primary);border-radius:var(--radius-sm) var(--radius-sm) 0 0;"></div><span style="font-size:0.625rem;color:var(--gray-500);margin-top:0.25rem;display:block;">أغسطس</span></div>
+            </div>
+          </div>
+
+          <div class="stat-card" style="padding:1.5rem;">
+            <h3 style="font-weight:700;color:var(--gray-900);margin-bottom:1rem;">توزيع التصنيفات</h3>
+            <div style="display:flex;flex-direction:column;gap:1rem;">
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;"><span style="font-size:0.875rem;color:var(--gray-700);">الالكترونيات</span><span style="font-weight:500;">85%</span></div><div style="height:8px;background:var(--gray-100);border-radius:9999px;overflow:hidden;"><div style="height:100%;width:85%;background:var(--primary);border-radius:9999px;"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;"><span style="font-size:0.875rem;color:var(--gray-700);">الهواتف</span><span style="font-weight:500;">72%</span></div><div style="height:8px;background:var(--gray-100);border-radius:9999px;overflow:hidden;"><div style="height:100%;width:72%;background:var(--success);border-radius:9999px;"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;"><span style="font-size:0.875rem;color:var(--gray-700);">الصيدليات</span><span style="font-weight:500;">64%</span></div><div style="height:8px;background:var(--gray-100);border-radius:9999px;overflow:hidden;"><div style="height:100%;width:64%;background:var(--warning);border-radius:9999px;"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;"><span style="font-size:0.875rem;color:var(--gray-700);">المطاعم</span><span style="font-weight:500;">58%</span></div><div style="height:8px;background:var(--gray-100);border-radius:9999px;overflow:hidden;"><div style="height:100%;width:58%;background:#9333ea;border-radius:9999px;"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;"><span style="font-size:0.875rem;color:var(--gray-700);">الخدمات</span><span style="font-weight:500;">45%</span></div><div style="height:8px;background:var(--gray-100);border-radius:9999px;overflow:hidden;"><div style="height:100%;width:45%;background:#ec4899;border-radius:9999px;"></div></div></div>
+              <div><div style="display:flex;justify-content:space-between;margin-bottom:0.25rem;"><span style="font-size:0.875rem;color:var(--gray-700);">الكاميرات</span><span style="font-weight:500;">38%</span></div><div style="height:8px;background:var(--gray-100);border-radius:9999px;overflow:hidden;"><div style="height:100%;width:38%;background:#06b6d4;border-radius:9999px;"></div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="stat-card" style="padding:1.5rem;margin-top:1.5rem;">
+          <h3 style="font-weight:700;color:var(--gray-900);margin-bottom:1rem;">آخر النشاطات</h3>
+          <div style="display:flex;flex-direction:column;gap:1rem;">
+            <div style="display:flex;align-items:flex-start;gap:0.75rem;padding-bottom:1rem;border-bottom:1px solid var(--gray-50);">
+              <div style="width:8px;height:8px;background:var(--primary);border-radius:50%;margin-top:0.5rem;flex-shrink:0;"></div>
+              <div style="flex:1;"><p style="font-size:0.875rem;font-weight:500;color:var(--gray-900);">مراجعة جديدة</p><p style="font-size:0.875rem;color:var(--gray-500);">قام محمد بإضافة مراجعة جديدة لصيدلية الأمانة</p></div>
+              <span style="font-size:0.75rem;color:var(--gray-400);flex-shrink:0;">منذ 5 دقائق</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:0.75rem;padding-bottom:1rem;border-bottom:1px solid var(--gray-50);">
+              <div style="width:8px;height:8px;background:var(--primary);border-radius:50%;margin-top:0.5rem;flex-shrink:0;"></div>
+              <div style="flex:1;"><p style="font-size:0.875rem;font-weight:500;color:var(--gray-900);">تعليق جديد</p><p style="font-size:0.875rem;color:var(--gray-500);">قام أحمد بإضافة تعليق على مراجعة كاميرا Sony</p></div>
+              <span style="font-size:0.75rem;color:var(--gray-400);flex-shrink:0;">منذ 15 دقيقة</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:0.75rem;padding-bottom:1rem;border-bottom:1px solid var(--gray-50);">
+              <div style="width:8px;height:8px;background:var(--primary);border-radius:50%;margin-top:0.5rem;flex-shrink:0;"></div>
+              <div style="flex:1;"><p style="font-size:0.875rem;font-weight:500;color:var(--gray-900);">مستخدم جديد</p><p style="font-size:0.875rem;color:var(--gray-500);">انضم خالد إلى المنصة</p></div>
+              <span style="font-size:0.75rem;color:var(--gray-400);flex-shrink:0;">منذ 30 دقيقة</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:0.75rem;padding-bottom:1rem;border-bottom:1px solid var(--gray-50);">
+              <div style="width:8px;height:8px;background:var(--primary);border-radius:50%;margin-top:0.5rem;flex-shrink:0;"></div>
+              <div style="flex:1;"><p style="font-size:0.875rem;font-weight:500;color:var(--gray-900);">إبلاغ جديد</p><p style="font-size:0.875rem;color:var(--gray-500);">تم الإبلاغ عن مراجعة مخالفة</p></div>
+              <span style="font-size:0.75rem;color:var(--gray-400);flex-shrink:0;">منذ ساعة</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:0.75rem;">
+              <div style="width:8px;height:8px;background:var(--primary);border-radius:50%;margin-top:0.5rem;flex-shrink:0;"></div>
+              <div style="flex:1;"><p style="font-size:0.875rem;font-weight:500;color:var(--gray-900);">تقييم جديد</p><p style="font-size:0.875rem;color:var(--gray-500);">قام سارة بتقييم ورشة أبو الخير</p></div>
+              <span style="font-size:0.75rem;color:var(--gray-400);flex-shrink:0;">منذ ساعتين</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Sidebar toggle for mobile
+    document.getElementById('sidebarToggle').addEventListener('click', function() {
+      document.getElementById('dashboardSidebar').classList.add('open');
+      document.getElementById('sidebarOverlay').classList.add('open');
+    });
+    document.getElementById('sidebarOverlay').addEventListener('click', function() {
+      document.getElementById('dashboardSidebar').classList.remove('open');
+      this.classList.remove('open');
+    });
+  </script>
+</body>
+</html>

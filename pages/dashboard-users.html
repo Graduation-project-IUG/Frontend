@@ -1,1 +1,125 @@
-<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>المستخدمون - لوحة التحكم - ملتقى</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet"><link rel="stylesheet" href="../css/style.css"></head><body><div class="dashboard-body"><div class="dashboard-sidebar-overlay" id="sidebarOverlay"></div><aside class="dashboard-sidebar" id="dashboardSidebar"><div class="dashboard-sidebar-header"><a href="../index.html" class="logo">ملتقى</a><button style="background:none;border:none;padding:0.5rem;color:var(--gray-500);cursor:pointer;" onclick="document.getElementById('dashboardSidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open');"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><nav class="dashboard-sidebar-nav"><a href="dashboard.html"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>لوحة التحكم</a><a href="dashboard-users.html"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>المستخدمين</a><a href="dashboard-categories.html"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>التصنيفات</a><a href="dashboard-reports.html"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>الإبلاغات</a></nav><div class="dashboard-sidebar-footer"><a href="../index.html">العودة للموقع</a></div></aside><div class="dashboard-main"><header class="dashboard-topbar"><div class="dashboard-topbar-inner"><div class="dashboard-topbar-left"><button id="sidebarToggle" style="background:none;border:none;padding:0.5rem;color:var(--gray-500);cursor:pointer;"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button><h1>المستخدمون</h1></div><div class="dashboard-topbar-right"><a href="profile.html"><span data-current-user-name>المستخدم</span></a></div></div></header><div class="dashboard-content"><div class="dashboard-actions-row"><div><h2 style="font-size:1.25rem;font-weight:700;color:var(--gray-900);">المستخدمون</h2><p style="color:var(--gray-500);">تم حذف أعمدة التصنيفات والمستفيدين كما طلبت.</p></div><a href="add-user.html" class="btn btn-primary">إضافة مستخدم</a></div><div class="table-card"><table class="data-table"><thead><tr><th>المستخدم</th><th>المدينة</th><th>الهاتف</th><th>الدور</th></tr></thead><tbody id="usersTableBody"><tr><td colspan="4">جاري التحميل...</td></tr></tbody></table></div></div></div></div><script src="../js/main.js"></script><script src="../js/api/client.js"></script><script>document.addEventListener('DOMContentLoaded',()=>MultaqaAPI.loadCurrentUser());</script><script src="../js/pages/dashboard-users.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المستخدمين - لوحة التحكم - ملتقى</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <div class="dashboard-body">
+    <div class="dashboard-sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="dashboard-sidebar" id="dashboardSidebar">
+      <div class="dashboard-sidebar-header">
+        <a href="../index.html" class="logo">ملتقى</a>
+        <button style="background:none;border:none;padding:0.5rem;color:var(--gray-500);cursor:pointer;" onclick="document.getElementById('dashboardSidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('open');">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <nav class="dashboard-sidebar-nav">
+        <a href="dashboard.html"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>لوحة التحكم</a>
+        <a href="dashboard-users.html" class="active"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>المستخدمين</a>
+        <a href="dashboard-categories.html"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>التصنيفات</a>
+        <a href="dashboard-reports.html"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>الإبلاغات</a>
+      </nav>
+      <div class="dashboard-sidebar-footer">
+        <a href="../index.html"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>العودة للموقع</a>
+      </div>
+    </aside>
+
+    <div class="dashboard-main">
+      <header class="dashboard-topbar">
+        <div class="dashboard-topbar-inner">
+          <div class="dashboard-topbar-left">
+            <button style="background:none;border:none;padding:0.5rem;color:var(--gray-500);cursor:pointer;" onclick="document.getElementById('dashboardSidebar').classList.add('open');document.getElementById('sidebarOverlay').classList.add('open');">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            </button>
+            <h1>المستخدمين</h1>
+          </div>
+          <div class="dashboard-topbar-right">
+            <div class="dashboard-topbar-search"><input type="text" placeholder="بحث..."><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+            <button style="position:relative;padding:0.5rem;color:var(--gray-500);border-radius:var(--radius);"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--danger);border-radius:50%;"></span></button>
+            <a href="profile.html"><img src="../images/avatar-saeed.jpg" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--gray-200);"></a>
+          </div>
+        </div>
+      </header>
+
+      <div class="dashboard-content">
+        <div style="display:flex;flex-direction:column;gap:1rem;margin-bottom:1.5rem;">
+          <h2 style="font-size:1.25rem;font-weight:700;color:var(--gray-900);">المستخدمين</h2>
+          <button class="btn btn-primary btn-sm" style="align-self:flex-start;">إضافة مستخدم جديد</button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:1rem;margin-bottom:1.5rem;">
+          <div class="filter-search" style="max-width:400px;"><input type="text" placeholder="البحث في المستخدمين..."><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--gray-400);"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <select class="form-input" style="width:auto;padding-left:2rem;"><option>كل الحالات</option><option>مفعل</option><option>معلق</option><option>متوقف</option></select>
+          </div>
+        </div>
+
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr><th>المستخدم</th><th>المدينة</th><th>المراجعات</th><th>التصنيفات</th><th>المستفيدين</th><th>الحالة</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:0.75rem;"><img src="../images/avatar-saeed.jpg" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"><span style="font-weight:500;color:var(--gray-900);">محمد عباس</span></div></td>
+                <td>غزة - تل الهوى</td><td>320</td><td>12 تصنيف</td><td>2,541</td>
+                <td><span class="status-badge active">مفعل</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:0.75rem;"><img src="../images/avatar-saeed.jpg" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"><span style="font-weight:500;color:var(--gray-900);">أحمد سمير</span></div></td>
+                <td>غزة - الرمال</td><td>180</td><td>8 تصنيف</td><td>1,200</td>
+                <td><span class="status-badge pending">معلق</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:0.75rem;"><img src="../images/avatar-saeed.jpg" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"><span style="font-weight:500;color:var(--gray-900);">خالد محمود</span></div></td>
+                <td>غزة - الشجاعية</td><td>95</td><td>5 تصنيف</td><td>850</td>
+                <td><span class="status-badge blocked">متوقف</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:0.75rem;"><img src="../images/avatar-saeed.jpg" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"><span style="font-weight:500;color:var(--gray-900);">ياسر عمر</span></div></td>
+                <td>غزة - النصر</td><td>420</td><td>20 تصنيف</td><td>3,100</td>
+                <td><span class="status-badge pending">معلق</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:0.75rem;"><img src="../images/avatar-saeed.jpg" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"><span style="font-weight:500;color:var(--gray-900);">سامي فؤاد</span></div></td>
+                <td>غزة - الصبرة</td><td>150</td><td>7 تصنيف</td><td>980</td>
+                <td><span class="status-badge blocked">متوقف</span></td>
+              </tr>
+              <tr>
+                <td><div style="display:flex;align-items:center;gap:0.75rem;"><img src="../images/avatar-saeed.jpg" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"><span style="font-weight:500;color:var(--gray-900);">رامي جمال</span></div></td>
+                <td>غزة - الشيخ رضوان</td><td>280</td><td>15 تصنيف</td><td>1,870</td>
+                <td><span class="status-badge active">مفعل</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <p class="pagination-info">يعرض الجدول <strong>6</strong> من أصل <strong>6</strong></p>
+          <div class="pagination-buttons">
+            <button class="pagination-btn" disabled><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+            <button class="pagination-num active">1</button>
+            <button class="pagination-num">2</button>
+            <button class="pagination-num">3</button>
+            <span style="color:var(--gray-400);">...</span>
+            <button class="pagination-btn"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('sidebarOverlay').addEventListener('click', function() {
+      document.getElementById('dashboardSidebar').classList.remove('open');
+      this.classList.remove('open');
+    });
+  </script>
+</body>
+</html>

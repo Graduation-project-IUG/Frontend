@@ -66,7 +66,7 @@ async function apiFetch(path, options = {}) {
 // ===== API Methods =====
 const API = {
   // Auth
-  login:    (email, password,rememberme)             => apiFetch('/auth/login',    { method: 'POST', body: JSON.stringify({ email, password,rememberme }) }),
+  login:    (email, password,rememberMe)             => apiFetch('/auth/login',    { method: 'POST', body: JSON.stringify({ email, password,rememberMe }) }),
   logout:   ()                            => apiFetch('/auth/logout',   { method: 'POST' }),
 
   // User

@@ -66,7 +66,7 @@ async function apiFetch(path, options = {}) {
 // ===== API Methods =====
 const API = {
   // Auth
-  login:    (email, password)             => apiFetch('/auth/login',    { method: 'POST', body: JSON.stringify({ email, password }) }),
+  login:    (email, password,rememberme)             => apiFetch('/auth/login',    { method: 'POST', body: JSON.stringify({ email, password,rememberme }) }),
   logout:   ()                            => apiFetch('/auth/logout',   { method: 'POST' }),
 
   // User
@@ -135,6 +135,11 @@ function parseApiError(err) {
   return err?.message || 'حدث خطأ غير متوقع';
 }
 
+// ===== HTML Escaping =====
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 // ===== Navbar User Update =====
 function updateNavbarUser(user) {
   if (!user) return;
@@ -156,10 +161,10 @@ function initLoginPage() {
     e.preventDefault();
     const email    = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
-
+const rememberPassword = document.getElementById('rememberme').checked;
     setButtonLoading(submitBtn, true);
     try {
-      const data = await API.login(email, password);
+      const data = await API.login(email, password,rememberPassword);
       if (data.csrfToken) sessionStorage.setItem('csrfToken', data.csrfToken);
       try {
         const profile = await API.getProfile();
@@ -204,7 +209,10 @@ async function initProfilePage() {
   if (!document.getElementById('profileEmail')) return;
 
   try {
-    const profile = await API.getProfile();
+    const [profile, postsRaw] = await Promise.all([
+      API.getProfile(),
+      API.getMyPosts().catch(() => [])
+    ]);
     setStoredUser(profile);
     updateNavbarUser(profile);
 
@@ -218,8 +226,10 @@ async function initProfilePage() {
     const nameH1 = document.querySelector('.profile-info h1');
     if (nameH1 && profile.full_name) nameH1.textContent = profile.full_name;
 
-    const cityCard = document.querySelector('.profile-stat-card .value');
-    if (cityCard && profile.city) cityCard.textContent = profile.city;
+    const statCards = document.querySelectorAll('.profile-stat-card .value');
+    if (statCards[0] && profile.city) statCards[0].textContent = profile.city;
+    const posts = Array.isArray(postsRaw) ? postsRaw : [];
+    if (statCards[1]) statCards[1].textContent = posts.length;
 
     const locationEl = document.querySelector('.profile-info .location');
     if (locationEl && profile.city) {
@@ -301,16 +311,29 @@ async function initReviewDetailPage() {
   const params = new URLSearchParams(window.location.search);
   const postId = params.get('id');
 
-  // Load post from API if ?id= is present
+  // Update greeting with logged-in user's name
+  const greetingEl = document.getElementById('pageGreeting');
+  const cachedUser = getStoredUser();
+  if (greetingEl && cachedUser && cachedUser.full_name) {
+    const firstName = cachedUser.full_name.split(' ')[0];
+    greetingEl.textContent = `مرحباً ${firstName}`;
+  }
+
   if (postId) {
     try {
       const post = await API.getPost(postId);
-      const titleEl = document.querySelector('[data-post-title]');
-      const descEl  = document.querySelector('[data-post-desc]');
-      const badgeEl = document.querySelector('.review-detail-badge');
-      if (titleEl) titleEl.textContent = post.title;
+      const titleEl  = document.querySelector('[data-post-title]');
+      const descEl   = document.querySelector('[data-post-desc]');
+      const badgeEl  = document.querySelector('.review-detail-badge');
+      const authorEl = document.getElementById('reviewAuthorName');
+      const dateEl   = document.getElementById('reviewAuthorDate');
+      if (titleEl) titleEl.textContent = post.title || '';
       if (descEl)  descEl.textContent  = post.description || '';
-      if (badgeEl) badgeEl.textContent = post.category;
+      if (badgeEl) badgeEl.textContent = post.category || '';
+      if (authorEl && cachedUser) authorEl.textContent = cachedUser.full_name || '';
+      if (dateEl && post.createdAt) {
+        dateEl.textContent = new Date(post.createdAt).toLocaleDateString('ar-EG');
+      }
     } catch (err) {
       if (err.status === 401) showNotification('يجب تسجيل الدخول للاطلاع على التفاصيل', 'error');
     }
@@ -383,30 +406,201 @@ async function initReviewDetailPage() {
 }
 
 // ===== My Posts Page =====
-function initMyPostsPage() {
-  if (!document.getElementById('postsList')) return;
+async function initMyPostsPage() {
+  const postsListEl = document.getElementById('postsList');
+  if (!postsListEl) return;
 
-  // Delete buttons
-  document.querySelectorAll('.post-actions .delete[data-post-id]').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const postId = btn.dataset.postId;
-      if (!confirm('هل أنت متأكد من حذف هذا المنشور؟')) return;
-      try {
-        await API.deletePost(postId);
-        btn.closest('.post-card')?.remove();
-        showNotification('تم حذف المنشور بنجاح', 'success');
-      } catch (err) {
-        showNotification(err.status === 401 ? 'يجب تسجيل الدخول أولاً' : parseApiError(err), 'error');
-      }
-    });
-  });
+  const bioEl = document.getElementById('userBio');
+  postsListEl.innerHTML = '<p style="text-align:center;color:var(--gray-400);padding:2rem;">جاري التحميل...</p>';
 
-  // Edit buttons → navigate to add-review.html?edit=id
-  document.querySelectorAll('.post-actions .edit-btn[data-post-id]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      window.location.href = `add-review.html?edit=${btn.dataset.postId}`;
+  try {
+    const [postsRaw, profile] = await Promise.all([
+      API.getMyPosts(),
+      API.getProfile().catch(() => null)
+    ]);
+
+    if (profile) {
+      setStoredUser(profile);
+      updateNavbarUser(profile);
+      if (bioEl) bioEl.textContent = profile.bio || 'لا توجد نبذة شخصية.';
+    }
+
+    const posts = Array.isArray(postsRaw) ? postsRaw : [];
+
+    if (posts.length === 0) {
+      postsListEl.innerHTML = '<p style="text-align:center;color:var(--gray-400);padding:2rem;">لا توجد مراجعات بعد. <a href="add-review.html">أضف مراجعة الآن</a></p>';
+      return;
+    }
+
+    postsListEl.innerHTML = posts.map(post => `
+      <div class="post-card" id="post-${escHtml(String(post.id || post._id || ''))}">
+        <div class="post-card-body">
+          <div class="post-card-header">
+            <div class="post-badges">
+              <span class="badge badge-blue">${escHtml(post.category || '')}</span>
+            </div>
+            <div class="post-actions">
+              <button class="edit-btn" data-post-id="${escHtml(String(post.id || post._id || ''))}">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="delete" data-post-id="${escHtml(String(post.id || post._id || ''))}">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </div>
+          <a href="review-detail.html?id=${escHtml(String(post.id || post._id || ''))}" style="display:block;margin-bottom:0.5rem;">
+            <h3 style="font-size:1.125rem;font-weight:700;color:var(--gray-900);">${escHtml(post.title || '')}</h3>
+          </a>
+          <p style="color:var(--gray-600);font-size:0.875rem;line-height:1.6;margin-bottom:1rem;" class="line-clamp-3">${escHtml(post.description || '')}</p>
+        </div>
+      </div>
+    `).join('');
+
+    postsListEl.querySelectorAll('.post-actions .delete[data-post-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const postId = btn.dataset.postId;
+        if (!confirm('هل أنت متأكد من حذف هذا المنشور؟')) return;
+        try {
+          await API.deletePost(postId);
+          document.getElementById(`post-${postId}`)?.remove();
+          showNotification('تم حذف المنشور بنجاح', 'success');
+        } catch (err) {
+          showNotification(err.status === 401 ? 'يجب تسجيل الدخول أولاً' : parseApiError(err), 'error');
+        }
+      });
     });
+
+    postsListEl.querySelectorAll('.post-actions .edit-btn[data-post-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        window.location.href = `add-review.html?edit=${btn.dataset.postId}`;
+      });
+    });
+
+    const filterContainer = document.getElementById('filterTags');
+    if (filterContainer) {
+      filterContainer.querySelectorAll('.filter-tag').forEach(tag => {
+        tag.addEventListener('click', () => {
+          filterContainer.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
+          tag.classList.add('active');
+          const filter = tag.textContent.trim();
+          postsListEl.querySelectorAll('.post-card').forEach(card => {
+            const category = card.querySelector('.badge')?.textContent.trim() || '';
+            card.style.display = (filter === 'الكل' || category === filter) ? '' : 'none';
+          });
+        });
+      });
+    }
+
+  } catch (err) {
+    if (err.status === 401) {
+      showNotification('يجب تسجيل الدخول أولاً', 'error');
+      setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+    } else {
+      postsListEl.innerHTML = '<p style="text-align:center;color:var(--danger);padding:2rem;">تعذّر تحميل المنشورات. الرجاء المحاولة لاحقاً.</p>';
+    }
+  }
+}
+
+// ===== Index Page (Recent Reviews) =====
+async function initIndexPage() {
+  const gridEl = document.getElementById('recentReviewsGrid');
+  if (!gridEl) return;
+
+  gridEl.innerHTML = '<p style="text-align:center;color:var(--gray-400);padding:2rem;grid-column:1/-1;">جاري التحميل...</p>';
+
+  try {
+    const postsRaw = await API.getMyPosts();
+    const posts = Array.isArray(postsRaw) ? postsRaw : [];
+
+    if (posts.length === 0) {
+      gridEl.innerHTML = '<p style="text-align:center;color:var(--gray-400);padding:2rem;grid-column:1/-1;">لا توجد مراجعات بعد.</p>';
+      return;
+    }
+
+    const recent = posts.slice(0, 3);
+    gridEl.innerHTML = recent.map(post => {
+      const desc = post.description || '';
+      const shortDesc = desc.length > 120 ? desc.slice(0, 120) + '...' : desc;
+      return `
+        <a href="pages/review-detail.html?id=${escHtml(String(post.id || post._id || ''))}" class="review-card">
+          <div class="review-card-body">
+            <span class="review-card-badge">${escHtml(post.category || '')}</span>
+            <h3 class="review-card-title">${escHtml(post.title || '')}</h3>
+            <p class="review-card-desc">${escHtml(shortDesc)}</p>
+          </div>
+        </a>
+      `;
+    }).join('');
+  } catch {
+    gridEl.innerHTML = '';
+  }
+}
+
+// ===== Contact Page =====
+function initContactPage() {
+  const form = document.getElementById('contactForm');
+  if (!form) return;
+  const submitBtn = form.querySelector('[type="submit"]');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name    = document.getElementById('contactName')?.value.trim();
+    const email   = document.getElementById('contactEmail')?.value.trim();
+    const subject = document.getElementById('contactSubject')?.value.trim();
+    const message = document.getElementById('contactMessage')?.value.trim();
+
+    if (!name || !email || !subject || !message) {
+      showNotification('الرجاء ملء جميع الحقول', 'error');
+      return;
+    }
+
+    setButtonLoading(submitBtn, true);
+    await new Promise(r => setTimeout(r, 600));
+    setButtonLoading(submitBtn, false);
+    showNotification('تم إرسال رسالتك بنجاح! سنرد عليك قريباً.', 'success');
+    form.reset();
   });
+}
+
+// ===== Settings Page =====
+async function initSettingsPage() {
+  const saveBtn = document.getElementById('saveSettingsBtn');
+  if (!saveBtn) return;
+
+  try {
+    const profile = await API.getProfile();
+    setStoredUser(profile);
+    updateNavbarUser(profile);
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el && val != null) el.value = val; };
+    set('settingsName',  profile.full_name);
+    set('settingsEmail', profile.email);
+    set('settingsPhone', profile.phone);
+    set('settingsCity',  profile.city);
+  } catch (err) {
+    if (err.status === 401) {
+      showNotification('يجب تسجيل الدخول أولاً', 'error');
+      setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+    }
+  }
+
+  saveBtn.addEventListener('click', async () => {
+    setButtonLoading(saveBtn, true);
+    await new Promise(r => setTimeout(r, 400));
+    setButtonLoading(saveBtn, false);
+    showNotification('تم حفظ الإعدادات بنجاح', 'success');
+  });
+}
+
+// ===== Page Greeting =====
+function updatePageGreeting() {
+  const greetingEl = document.getElementById('pageGreeting');
+  if (!greetingEl) return;
+  const user = getStoredUser();
+  if (user && user.full_name) {
+    const firstName = user.full_name.split(' ')[0];
+    greetingEl.textContent = `مرحباً ${firstName}`;
+  }
 }
 
 // ===== Logout =====
@@ -649,7 +843,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initPasswordToggle();
   initStarRating();
   initImageUpload();
-  initFilterTags();
   initLogout();
 
   // Populate navbar with cached user
@@ -665,6 +858,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initReviewDetailPage();
   initMyPostsPage();
   initLikeToggle();
+  initIndexPage();
+  initContactPage();
+  initSettingsPage();
+  updatePageGreeting();
 });
 
 // Slide animations

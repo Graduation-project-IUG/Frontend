@@ -1,4 +1,4 @@
-// ===== ملتقى - ملف JavaScript الرئيسي =====
+﻿// ===== ملتقى - ملف JavaScript الرئيسي =====
 
 // ===== API Configuration =====
 const API_BASE = 'https://graduation-project-swart-beta.vercel.app/api';
@@ -70,8 +70,9 @@ const API = {
   logout:   ()                            => apiFetch('/auth/logout',   { method: 'POST' }),
 
   // User
-  register: (full_name, email, password)  => apiFetch('/user/register', { method: 'POST', body: JSON.stringify({ full_name, email, password }) }),
-  getProfile: ()                          => apiFetch('/user/profile'),
+  register:      (full_name, email, password) => apiFetch('/user/register', { method: 'POST', body: JSON.stringify({ full_name, email, password }) }),
+  getProfile:    ()                           => apiFetch('/user/profile'),
+  updateProfile: (data)                       => apiFetch('/user/profile',  { method: 'PUT',  body: JSON.stringify(data) }),
 
   // Posts
   createPost:  (category, title, description) => apiFetch('/post',       { method: 'POST',   body: JSON.stringify({ category, title, description }) }),
@@ -267,6 +268,7 @@ function initAddReviewPage() {
   if (editId) {
     const heading = document.querySelector('h1');
     if (heading) heading.textContent = 'تعديل المراجعة';
+    if (submitBtn) submitBtn.innerHTML = `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> تحديث المنشور`;
     API.getPost(editId).then(post => {
       const titleEl    = document.getElementById('postTitle');
       const categoryEl = document.getElementById('postCategory');
@@ -334,6 +336,14 @@ async function initReviewDetailPage() {
       if (dateEl && post.createdAt) {
         dateEl.textContent = new Date(post.createdAt).toLocaleDateString('ar-EG');
       }
+      const authorCityEl  = document.getElementById('reviewAuthorCity');
+      const sidebarNameEl = document.getElementById('sidebarAuthorName');
+      const sidebarCityEl = document.getElementById('sidebarAuthorCity');
+      if (cachedUser) {
+        if (authorCityEl)  authorCityEl.textContent  = cachedUser.city      || '';
+        if (sidebarNameEl) sidebarNameEl.textContent = cachedUser.full_name || '';
+        if (sidebarCityEl) sidebarCityEl.textContent = cachedUser.city      || '';
+      }
     } catch (err) {
       if (err.status === 401) showNotification('يجب تسجيل الدخول للاطلاع على التفاصيل', 'error');
     }
@@ -346,7 +356,11 @@ async function initReviewDetailPage() {
       const isActive = likeBtn.classList.contains('active');
       const countEl  = likeBtn.querySelector('.count');
       try {
-        await API.saveReaction(postId, isActive ? 0 : 1);
+        if (isActive) {
+          await API.deleteReaction(postId);
+        } else {
+          await API.saveReaction(postId, 'like');
+        }
         likeBtn.classList.toggle('active');
         if (countEl) countEl.textContent = parseInt(countEl.textContent) + (isActive ? -1 : 1);
       } catch (err) {
@@ -509,11 +523,12 @@ async function initIndexPage() {
   gridEl.innerHTML = '<p style="text-align:center;color:var(--gray-400);padding:2rem;grid-column:1/-1;">جاري التحميل...</p>';
 
   try {
-    const postsRaw = await API.getMyPosts();
+    const postsRaw = await API.getMyPosts().catch(() => []);
     const posts = Array.isArray(postsRaw) ? postsRaw : [];
 
     if (posts.length === 0) {
-      gridEl.innerHTML = '<p style="text-align:center;color:var(--gray-400);padding:2rem;grid-column:1/-1;">لا توجد مراجعات بعد.</p>';
+      const loggedIn = !!getStoredUser();
+      gridEl.innerHTML = `<p style="text-align:center;color:var(--gray-400);padding:2rem;grid-column:1/-1;">${loggedIn ? 'لا توجد مراجعات بعد.' : 'سجّل دخولك لرؤية المراجعات الأخيرة'}</p>`;
       return;
     }
 
@@ -532,7 +547,8 @@ async function initIndexPage() {
       `;
     }).join('');
   } catch {
-    gridEl.innerHTML = '';
+    const loggedIn = !!getStoredUser();
+    gridEl.innerHTML = loggedIn ? '' : `<p style="text-align:center;color:var(--gray-400);padding:2rem;grid-column:1/-1;">سجّل دخولك لرؤية المراجعات الأخيرة</p>`;
   }
 }
 
@@ -577,6 +593,8 @@ async function initSettingsPage() {
     set('settingsEmail', profile.email);
     set('settingsPhone', profile.phone);
     set('settingsCity',  profile.city);
+    set('settingsBio',   profile.bio);
+    set('settingsBirthdate', profile.birthdate);
   } catch (err) {
     if (err.status === 401) {
       showNotification('يجب تسجيل الدخول أولاً', 'error');
@@ -585,10 +603,35 @@ async function initSettingsPage() {
   }
 
   saveBtn.addEventListener('click', async () => {
+    const full_name = document.getElementById('settingsName')?.value.trim();
+    const phone     = document.getElementById('settingsPhone')?.value.trim();
+    const city      = document.getElementById('settingsCity')?.value.trim();
+    const bio       = document.getElementById('settingsBio')?.value.trim();
+    const birthdate = document.getElementById('settingsBirthdate')?.value.trim();
+
+    if (!full_name) {
+      showNotification('الاسم الكامل مطلوب', 'error');
+      return;
+    }
+
+    const payload = { full_name };
+    if (phone)     payload.phone     = phone;
+    if (city)      payload.city      = city;
+    if (bio)       payload.bio       = bio;
+    if (birthdate) payload.birthdate = birthdate;
+
     setButtonLoading(saveBtn, true);
-    await new Promise(r => setTimeout(r, 400));
-    setButtonLoading(saveBtn, false);
-    showNotification('تم حفظ الإعدادات بنجاح', 'success');
+    try {
+      await API.updateProfile(payload);
+      const updated = await API.getProfile();
+      setStoredUser(updated);
+      updateNavbarUser(updated);
+      showNotification('تم حفظ الإعدادات بنجاح', 'success');
+    } catch (err) {
+      showNotification(parseApiError(err), 'error');
+    } finally {
+      setButtonLoading(saveBtn, false);
+    }
   });
 }
 
@@ -779,7 +822,7 @@ function initProfileEdit() {
   const inputs  = document.querySelectorAll('.profile-form .form-input');
   if (!editBtn) return;
 
-  editBtn.addEventListener('click', () => {
+  editBtn.addEventListener('click', async () => {
     const isEditing = editBtn.dataset.editing === 'true';
     if (!isEditing) {
       inputs.forEach(input => { input.removeAttribute('disabled'); input.classList.remove('bg-gray'); });
@@ -789,10 +832,32 @@ function initProfileEdit() {
       `;
       editBtn.dataset.editing = 'true';
     } else {
-      inputs.forEach(input => { input.setAttribute('disabled', 'true'); input.classList.add('bg-gray'); });
-      editBtn.innerHTML  = 'تعديل البيانات';
-      editBtn.dataset.editing = 'false';
-      showNotification('تم حفظ البيانات بنجاح!', 'success');
+      const full_name = document.getElementById('profileName')?.value.trim();
+      const phone     = document.getElementById('profilePhone')?.value.trim();
+      const city      = document.getElementById('profileCity')?.value.trim();
+      const bio       = document.getElementById('profileBio')?.value.trim();
+      if (!full_name) { showNotification('الاسم الكامل مطلوب', 'error'); return; }
+
+      const payload = { full_name };
+      if (phone) payload.phone = phone;
+      if (city)  payload.city  = city;
+      if (bio)   payload.bio   = bio;
+
+      setButtonLoading(editBtn, true);
+      try {
+        await API.updateProfile(payload);
+        const updated = await API.getProfile();
+        setStoredUser(updated);
+        updateNavbarUser(updated);
+        inputs.forEach(input => { input.setAttribute('disabled', 'true'); input.classList.add('bg-gray'); });
+        editBtn.innerHTML  = 'تعديل البيانات';
+        editBtn.dataset.editing = 'false';
+        showNotification('تم حفظ البيانات بنجاح!', 'success');
+      } catch (err) {
+        showNotification(parseApiError(err), 'error');
+      } finally {
+        setButtonLoading(editBtn, false);
+      }
     }
   });
 }

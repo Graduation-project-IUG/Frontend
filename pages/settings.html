@@ -64,19 +64,27 @@
             <div style="display:grid;grid-template-columns:1fr;gap:1.25rem;" class="form-grid-2">
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label">الاسم الكامل</label>
-                <input type="text" class="form-input" value="سعيد حسن">
+                <input type="text" id="settingsName" class="form-input" placeholder="الاسم الكامل">
               </div>
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label">البريد الإلكتروني</label>
-                <input type="email" class="form-input" value="saeed.hassan@example.com">
+                <input type="email" id="settingsEmail" class="form-input" placeholder="البريد الإلكتروني" disabled style="opacity:0.7;cursor:not-allowed;" title="لا يمكن تغيير البريد الإلكتروني">
               </div>
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label">رقم الموبايل</label>
-                <input type="tel" class="form-input" value="059 123 4567">
+                <input type="tel" id="settingsPhone" class="form-input" placeholder="رقم الموبايل">
               </div>
               <div class="form-group" style="margin-bottom:0;">
                 <label class="form-label">المدينة</label>
-                <select class="form-input"><option>غزة</option><option>الشمال</option><option>الوسطى</option><option>خان يونس</option><option>رفح</option></select>
+                <input type="text" id="settingsCity" class="form-input" placeholder="المدينة">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">تاريخ الميلاد</label>
+                <input type="date" id="settingsBirthdate" class="form-input">
+              </div>
+              <div class="form-group" style="margin-bottom:0;grid-column:1/-1;">
+                <label class="form-label">نبذة شخصية</label>
+                <textarea id="settingsBio" class="form-input" rows="3" placeholder="اكتب نبذة عنك..."></textarea>
               </div>
             </div>
           </div>
@@ -140,7 +148,7 @@
           </div>
         </div>
 
-        <button class="btn btn-primary w-full">حفظ الإعدادات</button>
+        <button id="saveSettingsBtn" class="btn btn-primary w-full">حفظ الإعدادات</button>
       </div>
     </main>
   </div>

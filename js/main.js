@@ -79,7 +79,7 @@ const API = {
   getPost:     (id)                           => apiFetch(`/post/${id}`),
   updatePost:  (id, data)                     => apiFetch(`/post/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
   deletePost:  (id)                           => apiFetch(`/post/${id}`, { method: 'DELETE' }),
-  getMyPosts:  ()                             => apiFetch('/post'),
+  getMyPosts:  ()                             => apiFetch('/my-post'),
 
   // Comments
   createComment: (post_id, content, rating) => apiFetch(`/comment/${post_id}`, { method: 'POST',   body: JSON.stringify({ content, rating }) }),

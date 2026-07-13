@@ -40,78 +40,102 @@
           </div>
           <div class="dashboard-topbar-right">
             <div class="dashboard-topbar-search"><input type="text" placeholder="بحث..."><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
-            <button style="position:relative;padding:0.5rem;color:var(--gray-500);border-radius:var(--radius);"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span style="position:absolute;top:4px;right:4px;width:8px;height:8px;background:var(--danger);border-radius:50%;"></span></button>
             <a href="profile.html"><img src="../images/avatar-saeed.jpg" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--gray-200);"></a>
           </div>
         </div>
       </header>
 
       <div class="dashboard-content">
-        <div style="display:flex;flex-direction:column;gap:1rem;margin-bottom:1.5rem;">
-          <h2 style="font-size:1.25rem;font-weight:700;color:var(--gray-900);">المستخدمين</h2>
-          <button class="btn btn-primary btn-sm" style="align-self:flex-start;">إضافة مستخدم جديد</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+          <div>
+            <h2 style="font-size:1.25rem;font-weight:700;color:var(--gray-900);">المستخدمين</h2>
+            <p style="font-size:0.875rem;color:var(--gray-500);margin-top:0.25rem;">الإجمالي: <strong id="usersCount">—</strong></p>
+          </div>
+          <button id="addUserBtn" class="btn btn-primary btn-sm">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            إضافة مستخدم جديد
+          </button>
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:1rem;margin-bottom:1.5rem;">
-          <div class="filter-search" style="max-width:400px;"><input type="text" placeholder="البحث في المستخدمين..."><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
-          <div style="display:flex;align-items:center;gap:0.5rem;">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--gray-400);"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-            <select class="form-input" style="width:auto;padding-left:2rem;"><option>كل الحالات</option><option>مفعل</option><option>معلق</option><option>متوقف</option></select>
-          </div>
+        <div class="filter-search" style="max-width:400px;margin-bottom:1.5rem;">
+          <input type="text" id="usersSearch" placeholder="البحث في المستخدمين...">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         </div>
 
         <div class="table-card">
           <table class="data-table">
             <thead>
-              <tr><th>المستخدم</th><th>المدينة</th><th>المراجعات</th><th>التصنيفات</th><th>المستفيدين</th><th>الحالة</th></tr>
+              <tr>
+                <th>المستخدم</th>
+                <th>المدينة</th>
+                <th>الدور</th>
+                <th>الهاتف</th>
+                <th>الحالة</th>
+                <th>إجراءات</th>
+              </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td><div style="display:flex;align-items:center;gap:0.75rem;"><img src="../images/avatar-saeed.jpg" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"><span style="font-weight:500;color:var(--gray-900);">محمد عباس</span></div></td>
-                <td>غزة - تل الهوى</td><td>320</td><td>12 تصنيف</td><td>2,541</td>
-                <td><span class="status-badge active">مفعل</span></td>
-              </tr>
-              <tr>
-                <td><div style="display:flex;align-items:center;gap:0.75rem;"><img src="../images/avatar-saeed.jpg" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"><span style="font-weight:500;color:var(--gray-900);">أحمد سمير</span></div></td>
-                <td>غزة - الرمال</td><td>180</td><td>8 تصنيف</td><td>1,200</td>
-                <td><span class="status-badge pending">معلق</span></td>
-              </tr>
-              <tr>
-                <td><div style="display:flex;align-items:center;gap:0.75rem;"><img src="../images/avatar-saeed.jpg" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"><span style="font-weight:500;color:var(--gray-900);">خالد محمود</span></div></td>
-                <td>غزة - الشجاعية</td><td>95</td><td>5 تصنيف</td><td>850</td>
-                <td><span class="status-badge blocked">متوقف</span></td>
-              </tr>
-              <tr>
-                <td><div style="display:flex;align-items:center;gap:0.75rem;"><img src="../images/avatar-saeed.jpg" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"><span style="font-weight:500;color:var(--gray-900);">ياسر عمر</span></div></td>
-                <td>غزة - النصر</td><td>420</td><td>20 تصنيف</td><td>3,100</td>
-                <td><span class="status-badge pending">معلق</span></td>
-              </tr>
-              <tr>
-                <td><div style="display:flex;align-items:center;gap:0.75rem;"><img src="../images/avatar-saeed.jpg" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"><span style="font-weight:500;color:var(--gray-900);">سامي فؤاد</span></div></td>
-                <td>غزة - الصبرة</td><td>150</td><td>7 تصنيف</td><td>980</td>
-                <td><span class="status-badge blocked">متوقف</span></td>
-              </tr>
-              <tr>
-                <td><div style="display:flex;align-items:center;gap:0.75rem;"><img src="../images/avatar-saeed.jpg" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"><span style="font-weight:500;color:var(--gray-900);">رامي جمال</span></div></td>
-                <td>غزة - الشيخ رضوان</td><td>280</td><td>15 تصنيف</td><td>1,870</td>
-                <td><span class="status-badge active">مفعل</span></td>
-              </tr>
+            <tbody id="usersTableBody">
+              <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-400);">جاري التحميل...</td></tr>
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <div class="pagination">
-          <p class="pagination-info">يعرض الجدول <strong>6</strong> من أصل <strong>6</strong></p>
-          <div class="pagination-buttons">
-            <button class="pagination-btn" disabled><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
-            <button class="pagination-num active">1</button>
-            <button class="pagination-num">2</button>
-            <button class="pagination-num">3</button>
-            <span style="color:var(--gray-400);">...</span>
-            <button class="pagination-btn"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+  <!-- Add / Edit User Modal -->
+  <div class="modal-overlay" id="userModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="userModalTitle" style="font-weight:700;color:var(--gray-900);font-size:1.1rem;">إضافة مستخدم جديد</h3>
+        <button class="modal-close-btn" id="userModalClose">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="userModalForm" style="display:flex;flex-direction:column;gap:1rem;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">الاسم الكامل *</label>
+          <input type="text" id="uName" class="form-input" required placeholder="أحمد محمد">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">البريد الإلكتروني *</label>
+          <input type="email" id="uEmail" class="form-input" required placeholder="user@example.com">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">كلمة المرور <span style="color:var(--gray-400);font-weight:400;">(مطلوبة عند الإضافة)</span></label>
+          <input type="password" id="uPassword" class="form-input" placeholder="StrongPassword@123">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">الهاتف</label>
+            <input type="text" id="uPhone" class="form-input" placeholder="+970599000000">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">المدينة</label>
+            <input type="text" id="uCity" class="form-input" placeholder="غزة">
           </div>
         </div>
-      </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">الدور</label>
+            <select id="uRole" class="form-input">
+              <option value="User">مستخدم</option>
+              <option value="Admin">أدمن</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">الحالة</label>
+            <select id="uStatus" class="form-input">
+              <option value="Active">مفعل</option>
+              <option value="Inactive">متوقف</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:0.5rem;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('userModal').classList.remove('show')">إلغاء</button>
+          <button type="submit" class="btn btn-primary btn-sm">حفظ</button>
+        </div>
+      </form>
     </div>
   </div>
 

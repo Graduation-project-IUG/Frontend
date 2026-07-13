@@ -79,7 +79,7 @@ const API = {
   getPost:     (id)                           => apiFetch(`/post/${id}`),
   updatePost:  (id, data)                     => apiFetch(`/post/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
   deletePost:  (id)                           => apiFetch(`/post/${id}`, { method: 'DELETE' }),
-  getMyPosts:  ()                             => apiFetch('/my-posts'),
+  getMyPosts:  (params = {})                  => { const q = new URLSearchParams(params).toString(); return apiFetch(`/user/posts${q ? '?' + q : ''}`); },
 
   // Comments
   createComment: (post_id, content, rating) => apiFetch(`/comment/${post_id}`, { method: 'POST',   body: JSON.stringify({ content, rating }) }),
@@ -98,6 +98,24 @@ const API = {
   getReport:    (id)              => apiFetch(`/report/${id}`),
   updateReport: (id, reason)      => apiFetch(`/report/${id}`,      { method: 'PUT',    body: JSON.stringify({ reason }) }),
   deleteReport: (id)              => apiFetch(`/report/${id}`,      { method: 'DELETE' }),
+
+  // Admin – Users
+  getUsers:   ()         => apiFetch('/users'),
+  addUser:    (data)     => apiFetch('/user',       { method: 'POST',   body: JSON.stringify(data) }),
+  updateUser: (id, data) => apiFetch(`/user/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
+  deleteUser: (id)       => apiFetch(`/user/${id}`, { method: 'DELETE' }),
+
+  // Public posts feed
+  getPosts: (params = {}) => { const q = new URLSearchParams(params).toString(); return apiFetch(`/posts${q ? '?' + q : ''}`); },
+
+  // Admin – Reports list
+  getReports: (params = {}) => { const q = new URLSearchParams(params).toString(); return apiFetch(`/reports${q ? '?' + q : ''}`); },
+
+  // Categories
+  getCategories:  (params = {}) => { const q = new URLSearchParams(params).toString(); return apiFetch(`/categories${q ? '?' + q : ''}`); },
+  createCategory: (name, description) => apiFetch('/category',       { method: 'POST',   body: JSON.stringify({ name, description }) }),
+  updateCategory: (id, data)          => apiFetch(`/category/${id}`, { method: 'PUT',    body: JSON.stringify(data) }),
+  deleteCategory: (id)                => apiFetch(`/category/${id}`, { method: 'DELETE' }),
 };
 
 // ===== Auth State Helpers =====
@@ -250,6 +268,18 @@ function initAddReviewPage() {
   const form = document.getElementById('addReviewForm');
   if (!form) return;
 
+  // Populate categories from API
+  const categorySelect = document.getElementById('postCategory');
+  if (categorySelect) {
+    API.getCategories().then(cats => {
+      if (!Array.isArray(cats) || cats.length === 0) return;
+      const currentVal = categorySelect.value;
+      categorySelect.innerHTML = '<option value="">اختر التصنيف</option>' +
+        cats.map(c => `<option value="${escHtml(String(c.id || ''))}">${escHtml(c.name || '')}</option>`).join('');
+      if (currentVal) categorySelect.value = currentVal;
+    }).catch(() => {});
+  }
+
   const ratingInput = document.getElementById('postRating');
   const submitBtn   = form.querySelector('[type="submit"]');
 
@@ -273,7 +303,16 @@ function initAddReviewPage() {
       const titleEl    = document.getElementById('postTitle');
       const categoryEl = document.getElementById('postCategory');
       if (titleEl)    titleEl.value    = post.title       || '';
-      if (categoryEl) categoryEl.value = post.category    || '';
+      if (categoryEl) {
+        // API returns category name; try to match by option text (after categories load)
+        const trySet = () => {
+          const match = Array.from(categoryEl.options).find(o => o.text === post.category || o.value === String(post.category));
+          if (match) match.selected = true;
+          else categoryEl.value = post.category || '';
+        };
+        // Delay slightly to allow async category load to finish
+        setTimeout(trySet, 600);
+      }
       if (descEl)     descEl.value     = post.description || '';
       if (counterEl && descEl) counterEl.textContent = `${descEl.value.length} / 1500 حرف`;
     }).catch(() => showNotification('تعذّر تحميل بيانات المنشور', 'error'));
@@ -523,7 +562,7 @@ async function initIndexPage() {
   gridEl.innerHTML = '<p style="text-align:center;color:var(--gray-400);padding:2rem;grid-column:1/-1;">جاري التحميل...</p>';
 
   try {
-    const postsRaw = await API.getMyPosts().catch(() => []);
+    const postsRaw = await API.getPosts({ limit: 6 }).catch(() => []);
     const posts = Array.isArray(postsRaw) ? postsRaw : [];
 
     if (posts.length === 0) {
@@ -532,16 +571,18 @@ async function initIndexPage() {
       return;
     }
 
-    const recent = posts.slice(0, 3);
-    gridEl.innerHTML = recent.map(post => {
+    gridEl.innerHTML = posts.slice(0, 6).map(post => {
       const desc = post.description || '';
       const shortDesc = desc.length > 120 ? desc.slice(0, 120) + '...' : desc;
+      const postId = post.id || post._id || '';
+      const href = postId ? `pages/review-detail.html?id=${escHtml(String(postId))}` : 'pages/my-posts.html';
       return `
-        <a href="pages/review-detail.html?id=${escHtml(String(post.id || post._id || ''))}" class="review-card">
+        <a href="${href}" class="review-card">
           <div class="review-card-body">
             <span class="review-card-badge">${escHtml(post.category || '')}</span>
             <h3 class="review-card-title">${escHtml(post.title || '')}</h3>
             <p class="review-card-desc">${escHtml(shortDesc)}</p>
+            ${post.commentsCount != null ? `<div style="font-size:0.75rem;color:var(--gray-400);margin-top:0.5rem;">${post.commentsCount} تعليق · تقييم ${post.averageRating ?? '-'}</div>` : ''}
           </div>
         </a>
       `;
@@ -633,6 +674,391 @@ async function initSettingsPage() {
       setButtonLoading(saveBtn, false);
     }
   });
+}
+
+// ===== Dashboard Main Page =====
+async function initDashboardPage() {
+  const statsGrid = document.querySelector('.stats-grid');
+  if (!statsGrid) return;
+  const statH3s = statsGrid.querySelectorAll('.stat-card h3');
+  if (!statH3s.length) return;
+
+  const [usersRes, reportsRes, postsRes, catsRes] = await Promise.allSettled([
+    API.getUsers(),
+    API.getReports(),
+    API.getPosts({ limit: 100 }),
+    API.getCategories(),
+  ]);
+
+  const count = (res) => res.status === 'fulfilled' && Array.isArray(res.value) ? res.value.length : null;
+  const fmt   = (n, limit) => n == null ? null : (n === limit ? n + '+' : String(n));
+
+  const u = count(usersRes);   if (u != null && statH3s[0]) statH3s[0].textContent = fmt(u, null);
+  const r = count(reportsRes); if (r != null && statH3s[1]) statH3s[1].textContent = fmt(r, null);
+  const p = count(postsRes);   if (p != null && statH3s[2]) statH3s[2].textContent = fmt(p, 100);
+  const c = count(catsRes);    if (c != null && statH3s[3]) statH3s[3].textContent = fmt(c, null);
+}
+
+// ===== Dashboard Users Page =====
+async function initDashboardUsersPage() {
+  const tbody = document.getElementById('usersTableBody');
+  if (!tbody) return;
+
+  const addBtn    = document.getElementById('addUserBtn');
+  const modal     = document.getElementById('userModal');
+  const modalForm = document.getElementById('userModalForm');
+  const modalTitle = document.getElementById('userModalTitle');
+  const modalClose = document.getElementById('userModalClose');
+  let editingId   = null;
+
+  async function loadUsers() {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-400);">جاري التحميل...</td></tr>';
+    try {
+      const users = await API.getUsers();
+      const countEl = document.getElementById('usersCount');
+      if (countEl) countEl.textContent = Array.isArray(users) ? users.length : 0;
+
+      if (!Array.isArray(users) || users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-400);">لا يوجد مستخدمون</td></tr>';
+        return;
+      }
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <div style="width:40px;height:40px;background:var(--primary-light);color:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex-shrink:0;">${escHtml((u.full_name||'?')[0].toUpperCase())}</div>
+              <div>
+                <div style="font-weight:500;color:var(--gray-900);">${escHtml(u.full_name||'')}</div>
+                <div style="font-size:0.75rem;color:var(--gray-500);">${escHtml(u.email||'')}</div>
+              </div>
+            </div>
+          </td>
+          <td>${escHtml(u.city||'-')}</td>
+          <td><span class="status-badge ${u.role==='Admin'?'active':'pending'}">${u.role==='Admin'?'أدمن':'مستخدم'}</span></td>
+          <td style="font-size:0.875rem;color:var(--gray-600);">${escHtml(u.phone||'-')}</td>
+          <td><span class="status-badge ${u.status==='Active'?'active':'blocked'}">${u.status==='Active'?'مفعل':'متوقف'}</span></td>
+          <td>
+            <div style="display:flex;gap:0.25rem;">
+              <button class="edit-user-btn" title="تعديل"
+                data-id="${escHtml(String(u.id||''))}"
+                data-name="${escHtml(u.full_name||'')}"
+                data-email="${escHtml(u.email||'')}"
+                data-phone="${escHtml(u.phone||'')}"
+                data-city="${escHtml(u.city||'')}"
+                data-role="${escHtml(u.role||'User')}"
+                data-status="${escHtml(u.status||'Active')}"
+                style="padding:0.5rem;color:var(--primary);border-radius:var(--radius);background:var(--primary-light);">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="delete-user-btn" title="حذف"
+                data-id="${escHtml(String(u.id||''))}"
+                data-name="${escHtml(u.full_name||'')}"
+                style="padding:0.5rem;color:var(--danger);border-radius:var(--radius);background:#fee2e2;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`).join('');
+
+      tbody.querySelectorAll('.edit-user-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          editingId = btn.dataset.id;
+          if (modalTitle) modalTitle.textContent = 'تعديل المستخدم';
+          document.getElementById('uName').value   = btn.dataset.name;
+          document.getElementById('uEmail').value  = btn.dataset.email;
+          document.getElementById('uPhone').value  = btn.dataset.phone;
+          document.getElementById('uCity').value   = btn.dataset.city;
+          document.getElementById('uRole').value   = btn.dataset.role;
+          document.getElementById('uStatus').value = btn.dataset.status;
+          document.getElementById('uPassword').value = '';
+          if (modal) modal.classList.add('show');
+        });
+      });
+
+      tbody.querySelectorAll('.delete-user-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm(`هل أنت متأكد من حذف المستخدم "${btn.dataset.name}"؟`)) return;
+          try {
+            await API.deleteUser(btn.dataset.id);
+            showNotification('تم حذف المستخدم بنجاح', 'success');
+            loadUsers();
+          } catch (err) {
+            showNotification(parseApiError(err), 'error');
+          }
+        });
+      });
+
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--danger);">${err.status === 403 ? 'ليس لديك صلاحية لعرض المستخدمين' : 'تعذّر تحميل البيانات'}</td></tr>`;
+    }
+  }
+
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      editingId = null;
+      if (modalTitle) modalTitle.textContent = 'إضافة مستخدم جديد';
+      if (modalForm) modalForm.reset();
+      if (modal) modal.classList.add('show');
+    });
+  }
+
+  if (modalClose) modalClose.addEventListener('click', () => modal && modal.classList.remove('show'));
+  if (modal) modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+
+  if (modalForm) {
+    modalForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const pwd = document.getElementById('uPassword').value;
+      if (!editingId && !pwd) { showNotification('كلمة المرور مطلوبة لإضافة مستخدم جديد', 'error'); return; }
+      const data = {
+        full_name: document.getElementById('uName').value.trim(),
+        email:     document.getElementById('uEmail').value.trim(),
+        role:      document.getElementById('uRole').value,
+        status:    document.getElementById('uStatus').value,
+      };
+      const phone = document.getElementById('uPhone').value.trim();
+      const city  = document.getElementById('uCity').value.trim();
+      if (phone) data.phone = phone;
+      if (city)  data.city  = city;
+      if (pwd)   data.password = pwd;
+
+      const submitBtn = modalForm.querySelector('[type="submit"]');
+      setButtonLoading(submitBtn, true);
+      try {
+        if (editingId) {
+          await API.updateUser(editingId, data);
+          showNotification('تم تحديث المستخدم بنجاح', 'success');
+        } else {
+          await API.addUser(data);
+          showNotification('تم إضافة المستخدم بنجاح', 'success');
+        }
+        modal.classList.remove('show');
+        loadUsers();
+      } catch (err) {
+        showNotification(parseApiError(err), 'error');
+      } finally {
+        setButtonLoading(submitBtn, false);
+      }
+    });
+  }
+
+  // Client-side search
+  const searchInput = document.getElementById('usersSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const term = searchInput.value.toLowerCase();
+      tbody.querySelectorAll('tr').forEach(tr => {
+        tr.style.display = tr.textContent.toLowerCase().includes(term) ? '' : 'none';
+      });
+    });
+  }
+
+  loadUsers();
+}
+
+// ===== Dashboard Reports Page =====
+async function initDashboardReportsPage() {
+  const tbody = document.getElementById('reportsTableBody');
+  if (!tbody) return;
+
+  async function loadReports() {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-400);">جاري التحميل...</td></tr>';
+    try {
+      const reports = await API.getReports();
+      const countEl = document.getElementById('reportsCount');
+      if (countEl) countEl.textContent = Array.isArray(reports) ? reports.length : 0;
+
+      if (!Array.isArray(reports) || reports.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-400);">لا توجد إبلاغات</td></tr>';
+        return;
+      }
+      tbody.innerHTML = reports.map(r => {
+        const postId = r.post?.id || r.postId || '';
+        return `
+        <tr>
+          <td>
+            <div style="font-weight:500;color:var(--gray-900);font-size:0.875rem;">${escHtml(r.post?.title || `منشور #${postId}`)}</div>
+            ${r.post?.category ? `<div style="font-size:0.75rem;color:var(--gray-500);">${escHtml(r.post.category)}</div>` : ''}
+          </td>
+          <td style="font-size:0.875rem;">${escHtml(r.user?.full_name || '-')}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.875rem;" title="${escHtml(r.reason||'')}">${escHtml(r.reason||'')}</td>
+          <td style="font-size:0.875rem;color:var(--gray-500);">${r.createdAt ? new Date(r.createdAt).toLocaleDateString('ar-EG') : '-'}</td>
+          <td>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+              ${postId ? `<a href="review-detail.html?id=${escHtml(String(postId))}" style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.375rem 0.625rem;background:var(--primary-light);color:var(--primary);border-radius:var(--radius-lg);font-size:0.8rem;">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>عرض</a>` : ''}
+              <button class="delete-report-btn" data-id="${escHtml(String(r.id||''))}"
+                style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.375rem 0.625rem;background:#fee2e2;color:var(--danger);border-radius:var(--radius-lg);font-size:0.8rem;border:none;cursor:pointer;">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>حذف</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+
+      tbody.querySelectorAll('.delete-report-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('هل أنت متأكد من حذف هذا الإبلاغ؟')) return;
+          try {
+            await API.deleteReport(btn.dataset.id);
+            showNotification('تم حذف الإبلاغ بنجاح', 'success');
+            loadReports();
+          } catch (err) {
+            showNotification(parseApiError(err), 'error');
+          }
+        });
+      });
+
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--danger);">${err.status === 403 ? 'ليس لديك صلاحية لعرض الإبلاغات' : 'تعذّر تحميل البيانات'}</td></tr>`;
+    }
+  }
+
+  const searchInput = document.getElementById('reportsSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const term = searchInput.value.toLowerCase();
+      tbody.querySelectorAll('tr').forEach(tr => {
+        tr.style.display = tr.textContent.toLowerCase().includes(term) ? '' : 'none';
+      });
+    });
+  }
+
+  loadReports();
+}
+
+// ===== Dashboard Categories Page =====
+async function initDashboardCategoriesPage() {
+  const tbody = document.getElementById('categoriesTableBody');
+  if (!tbody) return;
+
+  const addBtn     = document.getElementById('addCategoryBtn');
+  const modal      = document.getElementById('categoryModal');
+  const modalForm  = document.getElementById('categoryModalForm');
+  const modalTitle = document.getElementById('categoryModalTitle');
+  const modalClose = document.getElementById('categoryModalClose');
+  let editingId    = null;
+
+  async function loadCategories() {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--gray-400);">جاري التحميل...</td></tr>';
+    try {
+      const cats = await API.getCategories();
+      const countEl = document.getElementById('categoriesCount');
+      if (countEl) countEl.textContent = Array.isArray(cats) ? cats.length : 0;
+
+      if (!Array.isArray(cats) || cats.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--gray-400);">لا توجد تصنيفات</td></tr>';
+        return;
+      }
+      tbody.innerHTML = cats.map(c => `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <div style="width:40px;height:40px;background:var(--primary-light);color:var(--primary);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;flex-shrink:0;">${escHtml((c.name||'?')[0])}</div>
+              <div>
+                <div style="font-weight:500;color:var(--gray-900);">${escHtml(c.name||'')}</div>
+                ${c.description ? `<div style="font-size:0.75rem;color:var(--gray-500);">${escHtml(c.description)}</div>` : ''}
+              </div>
+            </div>
+          </td>
+          <td style="font-weight:500;">${c._count?.posts ?? '-'}</td>
+          <td style="font-size:0.875rem;color:var(--gray-500);">${c.createdAt ? new Date(c.createdAt).toLocaleDateString('ar-EG') : '-'}</td>
+          <td>
+            <div style="display:flex;gap:0.25rem;">
+              <button class="edit-cat-btn" title="تعديل"
+                data-id="${escHtml(String(c.id||''))}"
+                data-name="${escHtml(c.name||'')}"
+                data-desc="${escHtml(c.description||'')}"
+                style="padding:0.5rem;color:var(--primary);border-radius:var(--radius);background:var(--primary-light);">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="delete-cat-btn" title="حذف"
+                data-id="${escHtml(String(c.id||''))}"
+                data-name="${escHtml(c.name||'')}"
+                style="padding:0.5rem;color:var(--danger);border-radius:var(--radius);background:#fee2e2;">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>`).join('');
+
+      tbody.querySelectorAll('.edit-cat-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          editingId = btn.dataset.id;
+          if (modalTitle) modalTitle.textContent = 'تعديل التصنيف';
+          document.getElementById('catName').value = btn.dataset.name;
+          document.getElementById('catDesc').value = btn.dataset.desc;
+          if (modal) modal.classList.add('show');
+        });
+      });
+
+      tbody.querySelectorAll('.delete-cat-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm(`هل أنت متأكد من حذف التصنيف "${btn.dataset.name}"؟`)) return;
+          try {
+            await API.deleteCategory(btn.dataset.id);
+            showNotification('تم حذف التصنيف بنجاح', 'success');
+            loadCategories();
+          } catch (err) {
+            showNotification(parseApiError(err), 'error');
+          }
+        });
+      });
+
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--danger);">${err.status === 403 ? 'ليس لديك صلاحية لعرض التصنيفات' : 'تعذّر تحميل البيانات'}</td></tr>`;
+    }
+  }
+
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      editingId = null;
+      if (modalTitle) modalTitle.textContent = 'إضافة تصنيف جديد';
+      if (modalForm) modalForm.reset();
+      if (modal) modal.classList.add('show');
+    });
+  }
+
+  if (modalClose) modalClose.addEventListener('click', () => modal && modal.classList.remove('show'));
+  if (modal) modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+
+  if (modalForm) {
+    modalForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const name        = document.getElementById('catName').value.trim();
+      const description = document.getElementById('catDesc').value.trim() || undefined;
+      if (!name) { showNotification('اسم التصنيف مطلوب', 'error'); return; }
+
+      const submitBtn = modalForm.querySelector('[type="submit"]');
+      setButtonLoading(submitBtn, true);
+      try {
+        if (editingId) {
+          await API.updateCategory(editingId, { name, description });
+          showNotification('تم تحديث التصنيف بنجاح', 'success');
+        } else {
+          await API.createCategory(name, description);
+          showNotification('تم إضافة التصنيف بنجاح', 'success');
+        }
+        modal.classList.remove('show');
+        loadCategories();
+      } catch (err) {
+        showNotification(parseApiError(err), 'error');
+      } finally {
+        setButtonLoading(submitBtn, false);
+      }
+    });
+  }
+
+  const searchInput = document.getElementById('categoriesSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      const term = searchInput.value.toLowerCase();
+      tbody.querySelectorAll('tr').forEach(tr => {
+        tr.style.display = tr.textContent.toLowerCase().includes(term) ? '' : 'none';
+      });
+    });
+  }
+
+  loadCategories();
 }
 
 // ===== Page Greeting =====
@@ -926,6 +1352,10 @@ document.addEventListener('DOMContentLoaded', () => {
   initIndexPage();
   initContactPage();
   initSettingsPage();
+  initDashboardPage();
+  initDashboardUsersPage();
+  initDashboardReportsPage();
+  initDashboardCategoriesPage();
   updatePageGreeting();
 });
 
@@ -940,5 +1370,11 @@ style.textContent = `
     from { transform: translate(-50%, 0);     opacity: 1; }
     to   { transform: translate(-50%, -20px); opacity: 0; }
   }
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; padding:1rem; }
+  .modal-overlay.show { display:flex; }
+  .modal-box { background:#fff; border-radius:1rem; padding:1.5rem; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.2); }
+  .modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; border-bottom:1px solid var(--gray-100); padding-bottom:1rem; }
+  .modal-close-btn { background:none; border:none; padding:0.375rem; cursor:pointer; color:var(--gray-400); border-radius:.5rem; line-height:0; }
+  .modal-close-btn:hover { color:var(--gray-700); background:var(--gray-100); }
 `;
 document.head.appendChild(style);

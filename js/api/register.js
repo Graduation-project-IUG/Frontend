@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("register-form");
   if (!form || !window.MultaqaAPI) return;
@@ -26,3 +27,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+

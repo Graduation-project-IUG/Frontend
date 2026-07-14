@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", async () => {
   const form = document.getElementById("profile-form");
   const editBtn = document.getElementById("editProfileBtn");
@@ -55,3 +56,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
+

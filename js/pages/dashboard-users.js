@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", async () => {
   const tbody = document.getElementById("usersTableBody");
   try {
@@ -14,3 +15,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state">تحتاج الصفحة endpoint: <code>GET /users</code> لجلب المستخدمين للإدارة.</div></td></tr>`;
   }
 });
+

@@ -1,1 +1,114 @@
-<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>تعديل منشور - ملتقى</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet"><link rel="stylesheet" href="../css/style.css"></head><body><div class="site-wrapper"><nav class="navbar"><div class="container"><div style="display:flex;align-items:center;justify-content:space-between;height:64px;"><a href="../index.html" class="navbar-logo">ملتقى</a><div class="navbar-links"><a href="../index.html">الرئيسية</a><a href="my-posts.html">منشوراتي</a><a href="add-post.html">إضافة منشور</a><a href="about.html">عن المنصة</a></div><div class="navbar-actions"><a class="btn btn-secondary btn-sm" href="profile.html"><span data-current-user-name>الملف الشخصي</span></a><a class="btn btn-danger btn-sm" href="login.html" data-logout>تسجيل الخروج</a></div></div></div></nav><main><div class="container" style="padding-top:2rem;padding-bottom:2rem;max-width:760px;"><div style="margin-bottom:2rem;"><h1 style="font-size:1.5rem;font-weight:700;color:var(--gray-900);">تعديل المنشور</h1><p style="color:var(--gray-500);">عدّل بيانات المنشور ثم احفظ التغييرات.</p></div><div id="editPostStatus"></div><form id="edit-post-form" style="display:flex;flex-direction:column;gap:1.5rem;"><div class="card"><div class="card-body"><div class="form-group"><label class="form-label">العنوان</label><input name="title" type="text" class="form-input" required minlength="5" maxlength="100"></div><div class="form-group"><label class="form-label">التصنيف</label><input name="category" type="text" class="form-input" required minlength="3" maxlength="20"></div><div class="form-group" style="margin-bottom:0;"><label class="form-label">الوصف</label><textarea name="description" class="form-input" rows="7" minlength="8" maxlength="1000"></textarea></div></div></div><button type="submit" class="btn btn-primary btn-lg">حفظ التعديلات</button></form></div></main></div><script src="../js/main.js"></script><script src="../js/api/client.js"></script><script src="../js/pages/edit-post.js"></script></body></html>
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>تعديل منشور - ملتقى</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/style.css" />
+  </head>
+  <body>
+    <div class="site-wrapper">
+      <nav class="navbar">
+        <div class="container">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              height: 64px;
+            "
+          >
+            <a href="../index.html" class="navbar-logo">ملتقى</a>
+            <div class="navbar-links">
+              <a href="../index.html">الرئيسية</a
+              ><a href="my-posts.html">منشوراتي</a
+              ><a href="add-post.html">إضافة منشور</a
+              ><a href="about.html">عن المنصة</a>
+            </div>
+            <div class="navbar-actions">
+              <a class="btn btn-secondary btn-sm" href="profile.html"
+                ><span data-current-user-name>الملف الشخصي</span></a
+              ><a class="btn btn-danger btn-sm" href="login.html" data-logout
+                >تسجيل الخروج</a
+              >
+            </div>
+          </div>
+        </div>
+      </nav>
+      <main>
+        <div
+          class="container"
+          style="padding-top: 2rem; padding-bottom: 2rem; max-width: 760px"
+        >
+          <div style="margin-bottom: 2rem">
+            <h1
+              style="
+                font-size: 1.5rem;
+                font-weight: 700;
+                color: var(--gray-900);
+              "
+            >
+              تعديل المنشور
+            </h1>
+            <p style="color: var(--gray-500)">
+              عدّل بيانات المنشور ثم احفظ التغييرات.
+            </p>
+          </div>
+          <div id="editPostStatus"></div>
+          <form
+            id="edit-post-form"
+            style="display: flex; flex-direction: column; gap: 1.5rem"
+          >
+            <div class="card">
+              <div class="card-body">
+                <div class="form-group">
+                  <label class="form-label">العنوان</label
+                  ><input
+                    name="title"
+                    type="text"
+                    class="form-input"
+                    required
+                    minlength="5"
+                    maxlength="100"
+                  />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">التصنيف</label
+                  ><select
+                    name="category"
+                    id="editPostCategory"
+                    class="form-input"
+                    required
+                  >
+                    <option value="">جاري تحميل التصنيفات...</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0">
+                  <label class="form-label">الوصف</label
+                  ><textarea
+                    name="description"
+                    class="form-input"
+                    rows="7"
+                    minlength="8"
+                    maxlength="1000"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg">
+              حفظ التعديلات
+            </button>
+          </form>
+        </div>
+      </main>
+    </div>
+    <script src="../js/main.js"></script>
+    <script src="../js/api/client.js"></script>
+    <script src="../js/pages/edit-post.js"></script>
+  </body>
+</html>

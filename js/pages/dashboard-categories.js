@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", async () => {
   const tbody = document.getElementById("categoriesTableBody");
   let categories = [];
@@ -31,3 +32,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
+

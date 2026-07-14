@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", async () => {
   const tbody = document.getElementById("reportsTableBody");
   try {
@@ -26,3 +27,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
+

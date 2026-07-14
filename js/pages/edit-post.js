@@ -1,37 +1,76 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const id = MultaqaAPI.getParam("id");
   const form = document.getElementById("edit-post-form");
+  const categorySelect = document.getElementById("editPostCategory");
   if (!id) {
-    document.getElementById("editPostStatus").innerHTML = "<div class='empty-state'>لم يتم تحديد رقم المنشور.</div>";
+    document.getElementById("editPostStatus").innerHTML =
+      "<div class='empty-state'>لم يتم تحديد رقم المنشور.</div>";
     form.style.display = "none";
     return;
   }
 
   try {
-    const post = await MultaqaAPI.apiFetch(`/post/${id}`);
+    const [post, categoriesData] = await Promise.all([
+      MultaqaAPI.apiFetch(`/post/${id}`),
+      MultaqaAPI.apiFetch("/categories"),
+    ]);
+    const categories = Array.isArray(categoriesData)
+      ? categoriesData
+      : categoriesData?.categories || [];
+
+    categorySelect.innerHTML =
+      '<option value="">اختر التصنيف</option>' +
+      categories
+        .map((category) => {
+          const categoryId = category.id ?? category.category_id;
+          const categoryName = category.name || category.title || "تصنيف";
+          return `<option value="${MultaqaAPI.escapeHTML(categoryId)}">${MultaqaAPI.escapeHTML(categoryName)}</option>`;
+        })
+        .join("");
+
     form.title.value = post.title || "";
-    form.category.value = post.category || "";
     form.description.value = post.description || "";
+
+    const postCategoryId =
+      post.category_id ?? post.categoryId ?? post.category?.id ?? null;
+    if (postCategoryId != null) {
+      categorySelect.value = String(postCategoryId);
+    } else {
+      const postCategoryName =
+        typeof post.category === "string"
+          ? post.category
+          : post.category?.name || "";
+      const matchingOption = Array.from(categorySelect.options).find(
+        (option) => option.textContent.trim() === postCategoryName,
+      );
+      if (matchingOption) categorySelect.value = matchingOption.value;
+    }
   } catch (error) {
-    document.getElementById("editPostStatus").innerHTML = "<div class='empty-state'>تعذر تحميل المنشور.</div>";
+    document.getElementById("editPostStatus").innerHTML =
+      `<div class="empty-state">${MultaqaAPI.escapeHTML(error.message || "تعذر تحميل المنشور أو التصنيفات.")}</div>`;
+    form.style.display = "none";
   }
 
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
     const submitButton = form.querySelector('button[type="submit"]');
     const formData = new FormData(form);
+    const rawCategoryId = String(formData.get("category") || "");
+    const categoryId = /^\d+$/.test(rawCategoryId)
+      ? Number(rawCategoryId)
+      : rawCategoryId;
     try {
       submitButton.disabled = true;
       await MultaqaAPI.apiFetch(`/post/${id}`, {
         method: "PUT",
         body: {
           title: formData.get("title"),
-          category: formData.get("category"),
+          category: categoryId,
           description: formData.get("description") || undefined,
         },
       });
       MultaqaAPI.notify("تم تحديث المنشور");
-      window.location.href = `/pages/post.html?id=${id}`;
+      window.location.href = `post.html?id=${encodeURIComponent(id)}`;
     } catch (error) {
       MultaqaAPI.notify(error.message || "تعذر تحديث المنشور", "error");
     } finally {

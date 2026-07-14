@@ -5,12 +5,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   try {
     const categories = await MultaqaAPI.apiFetch("/categories");
-    const list = Array.isArray(categories) ? categories : categories?.categories || [];
+    const list = Array.isArray(categories)
+      ? categories
+      : categories?.categories || [];
     if (list.length) {
-      categorySelect.innerHTML = '<option value="">اختر التصنيف</option>' + list.map((category) => {
-        const name = category.name || category.category || category.title || category;
-        return `<option value="${MultaqaAPI.escapeHTML(name)}">${MultaqaAPI.escapeHTML(name)}</option>`;
-      }).join("");
+      categorySelect.innerHTML =
+        '<option value="">اختر التصنيف</option>' +
+        list
+          .map((category) => {
+            const name =
+              category.name || category.category || category.title || category;
+            return `<option value="${MultaqaAPI.escapeHTML(name)}">${MultaqaAPI.escapeHTML(name)}</option>`;
+          })
+          .join("");
     }
   } catch (_) {
     // Keep static fallback categories until /categories exists.

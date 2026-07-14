@@ -1,4 +1,6 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  if (!(await window.MultaqaAccess?.ensurePageAccess?.())) return;
+
   const form = document.getElementById("add-category-form");
   form?.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -8,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
       MultaqaAPI.notify("تمت إضافة التصنيف");
       window.location.href = "dashboard-categories.html";
     } catch (error) {
-      MultaqaAPI.notify("تحتاج endpoint: POST /category أو POST /categories لإضافة التصنيفات.", "error");
+      MultaqaAPI.notify(error.message || "تعذرت إضافة التصنيف", "error");
     }
   });
 });

@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", async () => {
   await MultaqaAPI.loadCurrentUser();
   const id = MultaqaAPI.getParam("id", "1");
@@ -87,3 +88,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
+

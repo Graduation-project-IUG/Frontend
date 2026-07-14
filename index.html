@@ -1,517 +1,1111 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ملتقى - منصة تقييم المنتجات المحلية</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-  <div class="site-wrapper">
-    <!-- ===== Navbar ===== -->
-    <nav class="navbar">
-      <div class="container">
-        <div style="display:flex;align-items:center;justify-content:space-between;height:64px;">
-          <!-- Logo -->
-          <a href="index.html" class="navbar-logo">ملتقى</a>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ملتقى - منصة تقييم المنتجات المحلية</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="site-wrapper">
+      <!-- ===== Navbar ===== -->
+      <nav class="navbar">
+        <div class="container">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              height: 64px;
+            "
+          >
+            <!-- Logo -->
+            <a href="index.html" class="navbar-logo">ملتقى</a>
 
-          <!-- Desktop Links -->
-          <div class="navbar-links">
+            <!-- Desktop Links -->
+            <div class="navbar-links">
+              <a href="index.html" class="active">الرئيسية</a>
+              <a href="pages/my-posts.html">المراجعات</a>
+              <a href="pages/about.html">عن المنصة</a>
+              <a href="pages/contact.html">تواصل معنا</a>
+            </div>
+
+            <!-- Search -->
+            <div class="navbar-search">
+              <input type="text" placeholder="بحث..." />
+              <svg
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            </div>
+
+            <!-- Actions -->
+            <div class="navbar-actions">
+              <button class="navbar-btn">
+                <svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                </svg>
+                <span class="badge"></span>
+              </button>
+
+              <div class="navbar-user" id="userDropdownBtn">
+                <img src="images/avatar-saeed.jpg" alt="سعيد حسن" />
+                <div class="navbar-user-info">
+                  <div class="name">سعيد حسن</div>
+                  <div class="role">أدمن</div>
+                </div>
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+
+                <!-- Dropdown -->
+                <div class="user-dropdown" id="userDropdown">
+                  <div class="user-dropdown-header">
+                    <div class="name">سعيد حسن</div>
+                    <div class="email">saeed@example.com</div>
+                  </div>
+                  <a href="pages/profile.html">
+                    <svg
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    الملف الشخصي
+                  </a>
+                  <a href="pages/my-posts.html">
+                    <svg
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"
+                      />
+                      <rect x="9" y="3" width="6" height="4" rx="2" />
+                    </svg>
+                    منشوراتي
+                  </a>
+                  <a href="pages/dashboard.html">
+                    <svg
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                    لوحة التحكم
+                  </a>
+                  <a href="pages/settings.html">
+                    <svg
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle cx="12" cy="12" r="3" />
+                      <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                      />
+                    </svg>
+                    الإعدادات
+                  </a>
+                  <div class="divider"></div>
+                  <a href="pages/login.html" class="logout">
+                    <svg
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    تسجيل الخروج
+                  </a>
+                </div>
+              </div>
+
+              <!-- Mobile Menu Button -->
+              <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M3 12h18M3 6h18M3 18h18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Mobile Menu -->
+          <div class="mobile-menu" id="mobileMenu">
+            <div class="mobile-search">
+              <input type="text" placeholder="بحث..." />
+              <svg
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            </div>
             <a href="index.html" class="active">الرئيسية</a>
             <a href="pages/my-posts.html">المراجعات</a>
             <a href="pages/about.html">عن المنصة</a>
             <a href="pages/contact.html">تواصل معنا</a>
-          </div>
-
-          <!-- Search -->
-          <div class="navbar-search">
-            <input type="text" placeholder="بحث...">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          </div>
-
-          <!-- Actions -->
-          <div class="navbar-actions">
-            <button class="navbar-btn">
-              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-              <span class="badge"></span>
-            </button>
-
-            <div class="navbar-user" id="userDropdownBtn">
-              <img src="images/avatar-saeed.jpg" alt="سعيد حسن">
-              <div class="navbar-user-info">
-                <div class="name">سعيد حسن</div>
-                <div class="role">أدمن</div>
-              </div>
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
-
-              <!-- Dropdown -->
-              <div class="user-dropdown" id="userDropdown">
-                <div class="user-dropdown-header">
-                  <div class="name">سعيد حسن</div>
-                  <div class="email">saeed@example.com</div>
-                </div>
-                <a href="pages/profile.html">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                  الملف الشخصي
-                </a>
-                <a href="pages/my-posts.html">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/></svg>
-                  منشوراتي
-                </a>
-                <a href="pages/dashboard.html">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  لوحة التحكم
-                </a>
-                <a href="pages/settings.html">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                  الإعدادات
-                </a>
-                <div class="divider"></div>
-                <a href="pages/login.html" class="logout">
-                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                  تسجيل الخروج
-                </a>
-              </div>
-            </div>
-
-            <!-- Mobile Menu Button -->
-            <button class="mobile-menu-btn" id="mobileMenuBtn">
-              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
-            </button>
+            <div class="mobile-divider"></div>
+            <a href="pages/profile.html">الملف الشخصي</a>
+            <a href="pages/my-posts.html">منشوراتي</a>
+            <a href="pages/dashboard.html">لوحة التحكم</a>
+            <a href="pages/login.html" style="color: var(--danger)"
+              >تسجيل الخروج</a
+            >
           </div>
         </div>
+      </nav>
 
-        <!-- Mobile Menu -->
-        <div class="mobile-menu" id="mobileMenu">
-          <div class="mobile-search">
-            <input type="text" placeholder="بحث...">
-            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          </div>
-          <a href="index.html" class="active">الرئيسية</a>
-          <a href="pages/my-posts.html">المراجعات</a>
-          <a href="pages/about.html">عن المنصة</a>
-          <a href="pages/contact.html">تواصل معنا</a>
-          <div class="mobile-divider"></div>
-          <a href="pages/profile.html">الملف الشخصي</a>
-          <a href="pages/my-posts.html">منشوراتي</a>
-          <a href="pages/dashboard.html">لوحة التحكم</a>
-          <a href="pages/login.html" style="color:var(--danger)">تسجيل الخروج</a>
-        </div>
-      </div>
-    </nav>
-
-    <main>
-      <!-- ===== Hero Section ===== -->
-      <section class="hero">
-        <div class="container">
-          <div class="hero-grid">
-            <div>
-              <div class="hero-badge">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                منصة المراجعات #1 في فلسطين
-              </div>
-              <h1 class="hero-title">
-                مجتمع متكامل لمراجعة
-                <span>المنتجات المختلفة</span>
-              </h1>
-              <p class="hero-desc">
-                شارك مراجعاتك وتجاربك مع مجتمعنا. قيّم المنتجات المحلية وساعد الآخرين في اتخاذ قرارات أفضل.
-              </p>
-              <div class="hero-buttons">
-                <a href="pages/add-review.html" class="btn btn-primary btn-lg">
-                  أضف مراجعة
-                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                </a>
-                <a href="pages/my-posts.html" class="btn btn-secondary btn-lg">
-                  تصفح المراجعات
-                </a>
-              </div>
-
-              <div class="hero-stats">
-                <div class="hero-stat">
-                  <div class="hero-stat-icon blue">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                  </div>
-                  <div class="value">12K+</div>
-                  <div class="label">مستخدم نشط</div>
-                </div>
-                <div class="hero-stat">
-                  <div class="hero-stat-icon emerald">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                  </div>
-                  <div class="value">1947</div>
-                  <div class="label">مراجعة</div>
-                </div>
-                <div class="hero-stat">
-                  <div class="hero-stat-icon amber">
-                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  </div>
-                  <div class="value">99%</div>
-                  <div class="label">تقييم إيجابي</div>
-                </div>
-                <div class="hero-stat">
-                  <div class="hero-stat-icon purple">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
-                  </div>
-                  <div class="value">+25%</div>
-                  <div class="label">زيادة شهرياً</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="hero-image">
-              <img src="images/hero-group.jpg" alt="مجتمع ملتقى">
-              <div class="hero-float top">
-                <div class="hero-float-icon amber">
-                  <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                </div>
-                <div class="hero-float-text">
-                  <div class="value">4.9</div>
-                  <div class="label">تقييم متوسط</div>
-                </div>
-              </div>
-              <div class="hero-float bottom">
-                <div class="hero-float-icon blue">
-                  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                </div>
-                <div class="hero-float-text">
-                  <div class="value">+1000</div>
-                  <div class="label">مراجع جديد</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tags Bar -->
-        <div class="tags-bar">
+      <main>
+        <!-- ===== Hero Section ===== -->
+        <section class="hero">
           <div class="container">
-            <p style="font-size:0.875rem;color:var(--gray-500);text-align:center;margin-bottom:0.75rem;">أكثر من 50000 مراجعة مكتوبة من قبل المستخدمين</p>
-            <div class="tags-bar-inner">
-              <span class="tag-chip">
-                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                صيدلية الأمانة - غزة
-              </span>
-              <span class="tag-chip">
-                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                ورشة أبو الخير للكهرباء
-              </span>
-              <span class="tag-chip">
-                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                نقطة عمر للإنترنت
-              </span>
-              <span class="tag-chip">
-                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                كاميرا Sony Z5
-              </span>
-              <span class="tag-chip">
-                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                مطعم الريم
-              </span>
-              <span class="tag-chip">
-                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                سوبرماركت الشوا
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
+            <div class="hero-grid">
+              <div>
+                <div class="hero-badge">
+                  <svg
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                    />
+                  </svg>
+                  منصة المراجعات #1 في فلسطين
+                </div>
+                <h1 class="hero-title">
+                  مجتمع متكامل لمراجعة
+                  <span>المنتجات المختلفة</span>
+                </h1>
+                <p class="hero-desc">
+                  شارك مراجعاتك وتجاربك مع مجتمعنا. قيّم المنتجات المحلية وساعد
+                  الآخرين في اتخاذ قرارات أفضل.
+                </p>
+                <div class="hero-buttons">
+                  <a href="pages/add-post.html" class="btn btn-primary btn-lg">
+                    أضف مراجعة
+                    <svg
+                      width="16"
+                      height="16"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </a>
+                  <a
+                    href="pages/my-posts.html"
+                    class="btn btn-secondary btn-lg"
+                  >
+                    تصفح المراجعات
+                  </a>
+                </div>
 
-      <!-- ===== Features Section ===== -->
-      <section class="section bg-white">
-        <div class="container">
-          <div style="text-align:center;margin-bottom:3rem;">
-            <h2 class="section-title">لماذا تختار ملتقى؟</h2>
-            <p class="section-subtitle" style="margin:0.5rem auto 0;">نقدم لك تجربة مراجعة شاملة ومميزة مع مجموعة من الخدمات الرائدة</p>
-          </div>
-          <div class="features-grid">
-            <div class="feature-card">
-              <div class="feature-icon">
-                <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <div class="hero-stats">
+                  <div class="hero-stat">
+                    <div class="hero-stat-icon blue">
+                      <svg
+                        width="24"
+                        height="24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                    </div>
+                    <div class="value">12K+</div>
+                    <div class="label">مستخدم نشط</div>
+                  </div>
+                  <div class="hero-stat">
+                    <div class="hero-stat-icon emerald">
+                      <svg
+                        width="24"
+                        height="24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div class="value">1947</div>
+                    <div class="label">مراجعة</div>
+                  </div>
+                  <div class="hero-stat">
+                    <div class="hero-stat-icon amber">
+                      <svg
+                        width="24"
+                        height="24"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div class="value">99%</div>
+                    <div class="label">تقييم إيجابي</div>
+                  </div>
+                  <div class="hero-stat">
+                    <div class="hero-stat-icon purple">
+                      <svg
+                        width="24"
+                        height="24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                      </svg>
+                    </div>
+                    <div class="value">+25%</div>
+                    <div class="label">زيادة شهرياً</div>
+                  </div>
+                </div>
               </div>
-              <h3>مراجعات موثوقة</h3>
-              <p>جميع المراجعات تخضع للتحقق قبل النشر لضمان المصداقية والشفافية.</p>
-            </div>
-            <div class="feature-card">
-              <div class="feature-icon">
-                <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              </div>
-              <h3>سريع وسهل</h3>
-              <p>واجهة سهلة الاستخدام تتيح لك إضافة مراجعاتك ومشاركتها بكل سهولة.</p>
-            </div>
-            <div class="feature-card">
-              <div class="feature-icon">
-                <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-              </div>
-              <h3>مجتمع فلسطيني</h3>
-              <p>انضم لمجتمع من المراجعين الفلسطينيين وشارك تجاربك مع المنتجات المحلية.</p>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      <!-- ===== How It Works ===== -->
-      <section class="section bg-gray-50">
-        <div class="container">
-          <div class="how-grid">
-            <div>
-              <h2 class="section-title">شارك مراجعاتك مع مجتمعنا</h2>
-              <p style="color:var(--gray-600);line-height:1.7;margin:1rem 0;">
-                ملتقى يتيح لك مشاركة تجاربك مع المنتجات المحلية بكل سهولة. ساعد الآخرين في اتخاذ قرارات شراء أفضل من خلال مراجعاتك الصادقة.
+              <div class="hero-image">
+                <img src="images/hero-group.jpg" alt="مجتمع ملتقى" />
+                <div class="hero-float top">
+                  <div class="hero-float-icon amber">
+                    <svg
+                      width="20"
+                      height="20"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                  </div>
+                  <div class="hero-float-text">
+                    <div class="value">4.9</div>
+                    <div class="label">تقييم متوسط</div>
+                  </div>
+                </div>
+                <div class="hero-float bottom">
+                  <div class="hero-float-icon blue">
+                    <svg
+                      width="20"
+                      height="20"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </div>
+                  <div class="hero-float-text">
+                    <div class="value">+1000</div>
+                    <div class="label">مراجع جديد</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tags Bar -->
+          <div class="tags-bar">
+            <div class="container">
+              <p
+                style="
+                  font-size: 0.875rem;
+                  color: var(--gray-500);
+                  text-align: center;
+                  margin-bottom: 0.75rem;
+                "
+              >
+                أكثر من 50000 مراجعة مكتوبة من قبل المستخدمين
               </p>
-              <div class="how-steps">
-                <div class="how-step">
-                  <div class="how-step-num">1</div>
-                  <p>أضف مراجعة جديدة بخطوات بسيطة</p>
+              <div class="tags-bar-inner">
+                <span class="tag-chip">
+                  <svg
+                    width="12"
+                    height="12"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                    />
+                  </svg>
+                  صيدلية الأمانة - غزة
+                </span>
+                <span class="tag-chip">
+                  <svg
+                    width="12"
+                    height="12"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                    />
+                  </svg>
+                  ورشة أبو الخير للكهرباء
+                </span>
+                <span class="tag-chip">
+                  <svg
+                    width="12"
+                    height="12"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                    />
+                  </svg>
+                  نقطة عمر للإنترنت
+                </span>
+                <span class="tag-chip">
+                  <svg
+                    width="12"
+                    height="12"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                    />
+                  </svg>
+                  كاميرا Sony Z5
+                </span>
+                <span class="tag-chip">
+                  <svg
+                    width="12"
+                    height="12"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                    />
+                  </svg>
+                  مطعم الريم
+                </span>
+                <span class="tag-chip">
+                  <svg
+                    width="12"
+                    height="12"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                    />
+                  </svg>
+                  سوبرماركت الشوا
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Features Section ===== -->
+        <section class="section bg-white">
+          <div class="container">
+            <div style="text-align: center; margin-bottom: 3rem">
+              <h2 class="section-title">لماذا تختار ملتقى؟</h2>
+              <p class="section-subtitle" style="margin: 0.5rem auto 0">
+                نقدم لك تجربة مراجعة شاملة ومميزة مع مجموعة من الخدمات الرائدة
+              </p>
+            </div>
+            <div class="features-grid">
+              <div class="feature-card">
+                <div class="feature-icon">
+                  <svg
+                    width="28"
+                    height="28"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
                 </div>
-                <div class="how-step">
-                  <div class="how-step-num">2</div>
-                  <p>أرفق صور وملاحظات عن المنتج</p>
+                <h3>مراجعات موثوقة</h3>
+                <p>
+                  جميع المراجعات تخضع للتحقق قبل النشر لضمان المصداقية
+                  والشفافية.
+                </p>
+              </div>
+              <div class="feature-card">
+                <div class="feature-icon">
+                  <svg
+                    width="28"
+                    height="28"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
                 </div>
-                <div class="how-step">
-                  <div class="how-step-num">3</div>
-                  <p>شارك تجربتك مع آلاف المستخدمين</p>
+                <h3>سريع وسهل</h3>
+                <p>
+                  واجهة سهلة الاستخدام تتيح لك إضافة مراجعاتك ومشاركتها بكل
+                  سهولة.
+                </p>
+              </div>
+              <div class="feature-card">
+                <div class="feature-icon">
+                  <svg
+                    width="28"
+                    height="28"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path
+                      d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                    />
+                  </svg>
                 </div>
-                <div class="how-step">
-                  <div class="how-step-num">4</div>
-                  <p>احصل على تفاعلات وردود من المجتمع</p>
+                <h3>مجتمع فلسطيني</h3>
+                <p>
+                  انضم لمجتمع من المراجعين الفلسطينيين وشارك تجاربك مع المنتجات
+                  المحلية.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== How It Works ===== -->
+        <section class="section bg-gray-50">
+          <div class="container">
+            <div class="how-grid">
+              <div>
+                <h2 class="section-title">شارك مراجعاتك مع مجتمعنا</h2>
+                <p
+                  style="
+                    color: var(--gray-600);
+                    line-height: 1.7;
+                    margin: 1rem 0;
+                  "
+                >
+                  ملتقى يتيح لك مشاركة تجاربك مع المنتجات المحلية بكل سهولة.
+                  ساعد الآخرين في اتخاذ قرارات شراء أفضل من خلال مراجعاتك
+                  الصادقة.
+                </p>
+                <div class="how-steps">
+                  <div class="how-step">
+                    <div class="how-step-num">1</div>
+                    <p>أضف مراجعة جديدة بخطوات بسيطة</p>
+                  </div>
+                  <div class="how-step">
+                    <div class="how-step-num">2</div>
+                    <p>أرفق صور وملاحظات عن المنتج</p>
+                  </div>
+                  <div class="how-step">
+                    <div class="how-step-num">3</div>
+                    <p>شارك تجربتك مع آلاف المستخدمين</p>
+                  </div>
+                  <div class="how-step">
+                    <div class="how-step-num">4</div>
+                    <p>احصل على تفاعلات وردود من المجتمع</p>
+                  </div>
+                </div>
+                <a href="pages/add-post.html" class="btn btn-primary">
+                  ابدأ الآن
+                  <svg
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </a>
+              </div>
+              <div class="chart-box">
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 1rem;
+                  "
+                >
+                  <h3 style="font-weight: 700; color: var(--gray-900)">
+                    إحصائيات المراجعات
+                  </h3>
+                  <span style="font-size: 0.875rem; color: var(--gray-500)"
+                    >هذا الشهر</span
+                  >
+                </div>
+                <div class="chart-bar">
+                  <div class="chart-bar-header">
+                    <span style="font-size: 0.875rem; color: var(--gray-600)"
+                      >الالكترونيات</span
+                    ><span style="font-weight: 500">85%</span>
+                  </div>
+                  <div class="chart-bar-track">
+                    <div class="chart-bar-fill" style="width: 85%"></div>
+                  </div>
+                </div>
+                <div class="chart-bar">
+                  <div class="chart-bar-header">
+                    <span style="font-size: 0.875rem; color: var(--gray-600)"
+                      >الهواتف</span
+                    ><span style="font-weight: 500">72%</span>
+                  </div>
+                  <div class="chart-bar-track">
+                    <div class="chart-bar-fill" style="width: 72%"></div>
+                  </div>
+                </div>
+                <div class="chart-bar">
+                  <div class="chart-bar-header">
+                    <span style="font-size: 0.875rem; color: var(--gray-600)"
+                      >الصيدليات</span
+                    ><span style="font-weight: 500">64%</span>
+                  </div>
+                  <div class="chart-bar-track">
+                    <div class="chart-bar-fill" style="width: 64%"></div>
+                  </div>
+                </div>
+                <div class="chart-bar">
+                  <div class="chart-bar-header">
+                    <span style="font-size: 0.875rem; color: var(--gray-600)"
+                      >المطاعم</span
+                    ><span style="font-weight: 500">58%</span>
+                  </div>
+                  <div class="chart-bar-track">
+                    <div class="chart-bar-fill" style="width: 58%"></div>
+                  </div>
+                </div>
+                <div class="chart-bar">
+                  <div class="chart-bar-header">
+                    <span style="font-size: 0.875rem; color: var(--gray-600)"
+                      >الخدمات</span
+                    ><span style="font-weight: 500">45%</span>
+                  </div>
+                  <div class="chart-bar-track">
+                    <div class="chart-bar-fill" style="width: 45%"></div>
+                  </div>
                 </div>
               </div>
-              <a href="pages/add-review.html" class="btn btn-primary">
-                ابدأ الآن
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== CTA Section ===== -->
+        <section class="cta-section">
+          <div class="container">
+            <h2>ابق على تواصل معنا</h2>
+            <p>سجل على المنصة الإلكترونية الأكبر لمراجعات المنتجات في فلسطين</p>
+            <div class="cta-buttons">
+              <a href="pages/register.html" class="btn btn-primary btn-lg"
+                >إنشاء حساب</a
+              >
+              <a
+                href="pages/login.html"
+                class="btn btn-lg"
+                style="
+                  background: transparent;
+                  color: #fff;
+                  border: 1px solid #4b5563;
+                "
+                >تسجيل الدخول</a
+              >
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Recent Reviews ===== -->
+        <section class="section bg-white">
+          <div class="container">
+            <div class="section-header">
+              <div>
+                <h2 class="section-title">أحدث المراجعات</h2>
+                <p class="section-subtitle" style="margin-top: 0.25rem">
+                  تصفح أحدث المراجعات المضافة من مستخدمينا
+                </p>
+              </div>
+              <a href="pages/my-posts.html">
+                عرض الكل
+                <svg
+                  width="16"
+                  height="16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
               </a>
             </div>
-            <div class="chart-box">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-                <h3 style="font-weight:700;color:var(--gray-900);">إحصائيات المراجعات</h3>
-                <span style="font-size:0.875rem;color:var(--gray-500);">هذا الشهر</span>
-              </div>
-              <div class="chart-bar">
-                <div class="chart-bar-header"><span style="font-size:0.875rem;color:var(--gray-600);">الالكترونيات</span><span style="font-weight:500;">85%</span></div>
-                <div class="chart-bar-track"><div class="chart-bar-fill" style="width:85%"></div></div>
-              </div>
-              <div class="chart-bar">
-                <div class="chart-bar-header"><span style="font-size:0.875rem;color:var(--gray-600);">الهواتف</span><span style="font-weight:500;">72%</span></div>
-                <div class="chart-bar-track"><div class="chart-bar-fill" style="width:72%"></div></div>
-              </div>
-              <div class="chart-bar">
-                <div class="chart-bar-header"><span style="font-size:0.875rem;color:var(--gray-600);">الصيدليات</span><span style="font-weight:500;">64%</span></div>
-                <div class="chart-bar-track"><div class="chart-bar-fill" style="width:64%"></div></div>
-              </div>
-              <div class="chart-bar">
-                <div class="chart-bar-header"><span style="font-size:0.875rem;color:var(--gray-600);">المطاعم</span><span style="font-weight:500;">58%</span></div>
-                <div class="chart-bar-track"><div class="chart-bar-fill" style="width:58%"></div></div>
-              </div>
-              <div class="chart-bar">
-                <div class="chart-bar-header"><span style="font-size:0.875rem;color:var(--gray-600);">الخدمات</span><span style="font-weight:500;">45%</span></div>
-                <div class="chart-bar-track"><div class="chart-bar-fill" style="width:45%"></div></div>
-              </div>
+            <div class="reviews-grid">
+              <!-- Review Card 1 -->
+              <a href="pages/post.html" class="review-card">
+                <div class="review-card-img">
+                  <img
+                    src="images/review-pharmacy.jpg"
+                    alt="صيدلية الأمانة - غزة"
+                  />
+                  <span class="review-card-badge">صيدلية</span>
+                </div>
+                <div class="review-card-body">
+                  <div class="review-stars">
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <span
+                      style="
+                        font-size: 0.75rem;
+                        color: var(--gray-500);
+                        margin-right: 0.25rem;
+                      "
+                      >5.0</span
+                    >
+                  </div>
+                  <h3 class="review-card-title">صيدلية الأمانة - غزة</h3>
+                  <p class="review-card-desc">
+                    صيدلية الأمانة الواقعة في غزة شارع الرمال - بالقرب من
+                    السرايا. تتميز الصيدلية بتوفر الأدوية الأساسية بأسعار
+                    معقولة.
+                  </p>
+                  <div class="review-card-footer">
+                    <div class="review-card-author">
+                      <img src="images/avatar-saeed.jpg" alt="سعيد حسن" />
+                      <span>سعيد حسن</span>
+                    </div>
+                    <div class="review-card-meta">
+                      <span>
+                        <svg
+                          width="12"
+                          height="12"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                          />
+                        </svg>
+                        18
+                      </span>
+                      <span>325 إعجاب</span>
+                    </div>
+                  </div>
+                </div>
+              </a>
+
+              <!-- Review Card 2 -->
+              <a href="pages/post.html" class="review-card">
+                <div class="review-card-img">
+                  <img
+                    src="images/review-electrician.jpg"
+                    alt="ورشة أبو الخير للكهرباء"
+                  />
+                  <span class="review-card-badge">كهربائي</span>
+                </div>
+                <div class="review-card-body">
+                  <div class="review-stars">
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <span
+                      style="
+                        font-size: 0.75rem;
+                        color: var(--gray-500);
+                        margin-right: 0.25rem;
+                      "
+                      >5.0</span
+                    >
+                  </div>
+                  <h3 class="review-card-title">ورشة أبو الخير للكهرباء</h3>
+                  <p class="review-card-desc">
+                    ورشة أبو الخير للكهرباء، شراء الوحدة بالقرب من مستشفى الشفاء
+                    العصومي، خدمة ممتازة وأسعار مناسبة.
+                  </p>
+                  <div class="review-card-footer">
+                    <div class="review-card-author">
+                      <img src="images/avatar-saeed.jpg" alt="سعيد حسن" />
+                      <span>سعيد حسن</span>
+                    </div>
+                    <div class="review-card-meta">
+                      <span>
+                        <svg
+                          width="12"
+                          height="12"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                          />
+                        </svg>
+                        12
+                      </span>
+                      <span>256 إعجاب</span>
+                    </div>
+                  </div>
+                </div>
+              </a>
+
+              <!-- Review Card 3 -->
+              <a href="pages/post.html" class="review-card">
+                <div class="review-card-img">
+                  <img
+                    src="images/review-internet.jpg"
+                    alt="نقطة عمر للإنترنت"
+                  />
+                  <span class="review-card-badge">إنترنت</span>
+                </div>
+                <div class="review-card-body">
+                  <div class="review-stars">
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <svg class="star-filled" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <svg class="star-empty" viewBox="0 0 24 24">
+                      <path
+                        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                      />
+                    </svg>
+                    <span
+                      style="
+                        font-size: 0.75rem;
+                        color: var(--gray-500);
+                        margin-right: 0.25rem;
+                      "
+                      >4.0</span
+                    >
+                  </div>
+                  <h3 class="review-card-title">نقطة عمر للإنترنت</h3>
+                  <p class="review-card-desc">
+                    نقطة عمر للإنترنت شراء عمر المختار بالقرب من كافا سوبرت،
+                    إنترنت سريع وأسعار مقبولة.
+                  </p>
+                  <div class="review-card-footer">
+                    <div class="review-card-author">
+                      <img src="images/avatar-saeed.jpg" alt="سعيد حسن" />
+                      <span>سعيد حسن</span>
+                    </div>
+                    <div class="review-card-meta">
+                      <span>
+                        <svg
+                          width="12"
+                          height="12"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                          />
+                        </svg>
+                        8
+                      </span>
+                      <span>189 إعجاب</span>
+                    </div>
+                  </div>
+                </div>
+              </a>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      <!-- ===== CTA Section ===== -->
-      <section class="cta-section">
+      <!-- ===== Footer ===== -->
+      <footer class="footer">
         <div class="container">
-          <h2>ابق على تواصل معنا</h2>
-          <p>سجل على المنصة الإلكترونية الأكبر لمراجعات المنتجات في فلسطين</p>
-          <div class="cta-buttons">
-            <a href="pages/register.html" class="btn btn-primary btn-lg">إنشاء حساب</a>
-            <a href="pages/login.html" class="btn btn-lg" style="background:transparent;color:#fff;border:1px solid #4b5563;">تسجيل الدخول</a>
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== Recent Reviews ===== -->
-      <section class="section bg-white">
-        <div class="container">
-          <div class="section-header">
+          <div class="footer-grid">
             <div>
-              <h2 class="section-title">أحدث المراجعات</h2>
-              <p class="section-subtitle" style="margin-top:0.25rem;">تصفح أحدث المراجعات المضافة من مستخدمينا</p>
+              <a href="index.html" class="footer-logo">ملتقى</a>
+              <p class="footer-desc">
+                مجتمع متكامل لمراجعة المنتجات المختلفة. شارك تجاربك ومراجعاتك مع
+                المجتمع.
+              </p>
+              <div class="footer-social">
+                <a href="#">
+                  <svg
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"
+                    />
+                  </svg>
+                </a>
+                <a href="#">
+                  <svg
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"
+                    />
+                  </svg>
+                </a>
+                <a href="#">
+                  <svg
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="M21 15l-5-5L5 21" />
+                  </svg>
+                </a>
+                <a href="#">
+                  <svg
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"
+                    />
+                    <rect x="2" y="9" width="4" height="12" />
+                    <circle cx="4" cy="4" r="2" />
+                  </svg>
+                </a>
+              </div>
             </div>
-            <a href="pages/my-posts.html">
-              عرض الكل
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
-            </a>
-          </div>
-          <div class="reviews-grid">
-            <!-- Review Card 1 -->
-            <a href="pages/review-detail.html" class="review-card">
-              <div class="review-card-img">
-                <img src="images/review-pharmacy.jpg" alt="صيدلية الأمانة - غزة">
-                <span class="review-card-badge">صيدلية</span>
-              </div>
-              <div class="review-card-body">
-                <div class="review-stars">
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <span style="font-size:0.75rem;color:var(--gray-500);margin-right:0.25rem;">5.0</span>
-                </div>
-                <h3 class="review-card-title">صيدلية الأمانة - غزة</h3>
-                <p class="review-card-desc">صيدلية الأمانة الواقعة في غزة شارع الرمال - بالقرب من السرايا. تتميز الصيدلية بتوفر الأدوية الأساسية بأسعار معقولة.</p>
-                <div class="review-card-footer">
-                  <div class="review-card-author">
-                    <img src="images/avatar-saeed.jpg" alt="سعيد حسن">
-                    <span>سعيد حسن</span>
-                  </div>
-                  <div class="review-card-meta">
-                    <span>
-                      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                      18
-                    </span>
-                    <span>325 إعجاب</span>
-                  </div>
-                </div>
-              </div>
-            </a>
-
-            <!-- Review Card 2 -->
-            <a href="pages/review-detail.html" class="review-card">
-              <div class="review-card-img">
-                <img src="images/review-electrician.jpg" alt="ورشة أبو الخير للكهرباء">
-                <span class="review-card-badge">كهربائي</span>
-              </div>
-              <div class="review-card-body">
-                <div class="review-stars">
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <span style="font-size:0.75rem;color:var(--gray-500);margin-right:0.25rem;">5.0</span>
-                </div>
-                <h3 class="review-card-title">ورشة أبو الخير للكهرباء</h3>
-                <p class="review-card-desc">ورشة أبو الخير للكهرباء، شراء الوحدة بالقرب من مستشفى الشفاء العصومي، خدمة ممتازة وأسعار مناسبة.</p>
-                <div class="review-card-footer">
-                  <div class="review-card-author">
-                    <img src="images/avatar-saeed.jpg" alt="سعيد حسن">
-                    <span>سعيد حسن</span>
-                  </div>
-                  <div class="review-card-meta">
-                    <span>
-                      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                      12
-                    </span>
-                    <span>256 إعجاب</span>
-                  </div>
-                </div>
-              </div>
-            </a>
-
-            <!-- Review Card 3 -->
-            <a href="pages/review-detail.html" class="review-card">
-              <div class="review-card-img">
-                <img src="images/review-internet.jpg" alt="نقطة عمر للإنترنت">
-                <span class="review-card-badge">إنترنت</span>
-              </div>
-              <div class="review-card-body">
-                <div class="review-stars">
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <svg class="star-filled" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <svg class="star-empty" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                  <span style="font-size:0.75rem;color:var(--gray-500);margin-right:0.25rem;">4.0</span>
-                </div>
-                <h3 class="review-card-title">نقطة عمر للإنترنت</h3>
-                <p class="review-card-desc">نقطة عمر للإنترنت شراء عمر المختار بالقرب من كافا سوبرت، إنترنت سريع وأسعار مقبولة.</p>
-                <div class="review-card-footer">
-                  <div class="review-card-author">
-                    <img src="images/avatar-saeed.jpg" alt="سعيد حسن">
-                    <span>سعيد حسن</span>
-                  </div>
-                  <div class="review-card-meta">
-                    <span>
-                      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                      8
-                    </span>
-                    <span>189 إعجاب</span>
-                  </div>
-                </div>
-              </div>
-            </a>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- ===== Footer ===== -->
-    <footer class="footer">
-      <div class="container">
-        <div class="footer-grid">
-          <div>
-            <a href="index.html" class="footer-logo">ملتقى</a>
-            <p class="footer-desc">مجتمع متكامل لمراجعة المنتجات المختلفة. شارك تجاربك ومراجعاتك مع المجتمع.</p>
-            <div class="footer-social">
-              <a href="#">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-              </a>
-              <a href="#">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/></svg>
-              </a>
-              <a href="#">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-              </a>
-              <a href="#">
-                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
-              </a>
+            <div>
+              <h4>روابط سريعة</h4>
+              <ul class="footer-links">
+                <li><a href="index.html">الرئيسية</a></li>
+                <li><a href="pages/my-posts.html">المراجعات</a></li>
+                <li><a href="pages/about.html">عن المنصة</a></li>
+                <li><a href="pages/contact.html">تواصل معنا</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4>التصنيفات</h4>
+              <ul class="footer-links">
+                <li><a href="pages/my-posts.html">الالكترونيات</a></li>
+                <li><a href="pages/my-posts.html">الهواتف</a></li>
+                <li><a href="pages/my-posts.html">الكاميرات</a></li>
+                <li><a href="pages/my-posts.html">المزيد...</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4>تواصل معنا</h4>
+              <ul class="footer-contact" style="list-style: none">
+                <li>
+                  <svg
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                    />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                  info@multaqa.com
+                </li>
+                <li>
+                  <svg
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                    />
+                  </svg>
+                  +970 59 123 4567
+                </li>
+                <li>
+                  <svg
+                    width="16"
+                    height="16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
+                  غزة، فلسطين
+                </li>
+              </ul>
             </div>
           </div>
-          <div>
-            <h4>روابط سريعة</h4>
-            <ul class="footer-links">
-              <li><a href="index.html">الرئيسية</a></li>
-              <li><a href="pages/my-posts.html">المراجعات</a></li>
-              <li><a href="pages/about.html">عن المنصة</a></li>
-              <li><a href="pages/contact.html">تواصل معنا</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>التصنيفات</h4>
-            <ul class="footer-links">
-              <li><a href="pages/my-posts.html">الالكترونيات</a></li>
-              <li><a href="pages/my-posts.html">الهواتف</a></li>
-              <li><a href="pages/my-posts.html">الكاميرات</a></li>
-              <li><a href="pages/my-posts.html">المزيد...</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4>تواصل معنا</h4>
-            <ul class="footer-contact" style="list-style:none;">
-              <li>
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                info@multaqa.com
-              </li>
-              <li>
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                +970 59 123 4567
-              </li>
-              <li>
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                غزة، فلسطين
-              </li>
-            </ul>
+          <div class="footer-bottom">
+            <p>&copy; 2024 ملتقى. جميع الحقوق محفوظة.</p>
+            <div class="footer-bottom-links">
+              <a href="#">شروط الاستخدام</a>
+              <a href="#">سياسة الخصوصية</a>
+            </div>
           </div>
         </div>
-        <div class="footer-bottom">
-          <p>&copy; 2024 ملتقى. جميع الحقوق محفوظة.</p>
-          <div class="footer-bottom-links">
-            <a href="#">شروط الاستخدام</a>
-            <a href="#">سياسة الخصوصية</a>
-          </div>
-        </div>
-      </div>
-    </footer>
-  </div>
+      </footer>
+    </div>
 
-  <script src="js/main.js"></script>
-</body>
+    <script src="js/main.js"></script>
+  </body>
 </html>

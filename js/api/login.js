@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("login-form");
   if (!form || !window.MultaqaAPI) return;
@@ -27,3 +28,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+

@@ -1,3 +1,4 @@
+
 document.addEventListener("DOMContentLoaded", async () => {
   await MultaqaAPI.loadCurrentUser();
   const listEl = document.getElementById("myPostsList");
@@ -58,3 +59,4 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
+

@@ -1,11 +1,12 @@
 // ===== ملتقى - ملف JavaScript الرئيسي =====
 
 // ===== API Configuration =====
-const API_BASE = "https://graduation-project-swart-beta.vercel.app/api";
+const API_BASE = window.API_BASE || "/api";
+const CSRF_STORAGE_KEY = `csrfToken:${API_BASE}`;
 
 // ===== CSRF Helper =====
 async function getCsrfToken() {
-  let token = sessionStorage.getItem("csrfToken");
+  let token = sessionStorage.getItem(CSRF_STORAGE_KEY);
   if (token) return token;
   try {
     const res = await fetch(`${API_BASE}/csrf-token`, {
@@ -14,7 +15,7 @@ async function getCsrfToken() {
     if (res.ok) {
       const data = await res.json();
       token = data.csrfToken;
-      sessionStorage.setItem("csrfToken", token);
+      sessionStorage.setItem(CSRF_STORAGE_KEY, token);
     }
   } catch {}
   return token;
@@ -53,6 +54,7 @@ async function apiFetch(path, options = {}) {
   }
 
   if (res.status === 401 || res.status === 403) {
+    sessionStorage.removeItem(CSRF_STORAGE_KEY);
     sessionStorage.removeItem("csrfToken");
   }
 
@@ -195,6 +197,7 @@ function setStoredUser(user) {
   sessionStorage.setItem("currentUser", JSON.stringify(user));
 }
 function clearAuth() {
+  sessionStorage.removeItem(CSRF_STORAGE_KEY);
   sessionStorage.removeItem("csrfToken");
   sessionStorage.removeItem("currentUser");
 }
@@ -208,6 +211,15 @@ const ADMIN_ONLY_PAGES = new Set([
   "dashboard-categories.html",
 ]);
 
+const AUTH_ONLY_PAGES = new Set([
+  "add-post.html",
+  "add-review.html",
+  "edit-post.html",
+  "my-posts.html",
+  "profile.html",
+  "settings.html",
+]);
+
 function getCurrentPageName() {
   return (
     window.location.pathname.split("/").filter(Boolean).pop() || "index.html"
@@ -216,6 +228,10 @@ function getCurrentPageName() {
 
 function isAdminOnlyPage() {
   return ADMIN_ONLY_PAGES.has(getCurrentPageName());
+}
+
+function isAuthOnlyPage() {
+  return AUTH_ONLY_PAGES.has(getCurrentPageName());
 }
 
 function updateRoleBasedUI(user) {
@@ -233,20 +249,23 @@ function updateRoleBasedUI(user) {
 let pageAccessPromise;
 
 async function ensurePageAccess() {
-  if (!isAdminOnlyPage()) return true;
+  if (!isAdminOnlyPage() && !isAuthOnlyPage()) return true;
   if (pageAccessPromise) return pageAccessPromise;
 
   pageAccessPromise = (async () => {
     try {
       const user = await API.getProfile();
       setStoredUser(user);
+      updateNavbarUser(user);
+      updateRoleBasedUI(user);
 
       if (user?.role !== "Admin") {
-        window.location.replace("../index.html");
-        return false;
+        if (isAdminOnlyPage()) {
+          window.location.replace("../index.html");
+          return false;
+        }
       }
 
-      updateNavbarUser(user);
       document.documentElement.classList.remove("auth-checking");
       return true;
     } catch (error) {
@@ -262,7 +281,7 @@ async function ensurePageAccess() {
 
 window.MultaqaAccess = { ensurePageAccess };
 
-if (isAdminOnlyPage()) {
+if (isAdminOnlyPage() || isAuthOnlyPage()) {
   document.documentElement.classList.add("auth-checking");
 }
 
@@ -331,7 +350,8 @@ function escHtml(str) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 // ===== Navbar User Update =====
@@ -365,7 +385,7 @@ function initLoginPage() {
     setButtonLoading(submitBtn, true);
     try {
       const data = await API.login(email, password, rememberPassword);
-      if (data.csrfToken) sessionStorage.setItem("csrfToken", data.csrfToken);
+      if (data.csrfToken) sessionStorage.setItem(CSRF_STORAGE_KEY, data.csrfToken);
       try {
         const profile = await API.getProfile();
         setStoredUser(profile);
@@ -446,8 +466,9 @@ async function initProfilePage() {
     const locationEl = document.querySelector(".profile-info .location");
     if (locationEl && profile.city) {
       const svgEl = locationEl.querySelector("svg");
-      locationEl.innerHTML =
-        (svgEl ? svgEl.outerHTML : "") + " " + profile.city;
+      locationEl.textContent = "";
+      if (svgEl) locationEl.appendChild(svgEl);
+      locationEl.append(` ${profile.city}`);
     }
   } catch (err) {
     if (err.status === 401) {
@@ -590,6 +611,64 @@ async function initReviewDetailPage() {
     greetingEl.textContent = `مرحباً ${firstName}`;
   }
 
+  const setMissingPostState = () => {
+    const titleEl = document.querySelector("[data-post-title]");
+    const descEl = document.querySelector("[data-post-desc]");
+    const badgeEl = document.querySelector(".review-detail-badge");
+    const authorEl = document.getElementById("reviewAuthorName");
+    const authorCityEl = document.getElementById("reviewAuthorCity");
+    const dateEl = document.getElementById("reviewAuthorDate");
+    const sidebarNameEl = document.getElementById("sidebarAuthorName");
+    const sidebarCityEl = document.getElementById("sidebarAuthorCity");
+    const likeBtn = document.getElementById("likeBtn");
+    const reportBtn = document.getElementById("reportBtn");
+    const commentForm = document.getElementById("commentForm");
+
+    if (titleEl) titleEl.textContent = "اختر منشوراً لعرض التفاصيل";
+    if (descEl) {
+      descEl.textContent =
+        "لا يمكن عرض تفاصيل هذا المنشور لأن الرابط لا يحتوي على معرف منشور صالح.";
+    }
+    if (badgeEl) badgeEl.textContent = "غير محدد";
+    if (authorEl) authorEl.textContent = "غير محدد";
+    if (authorCityEl) authorCityEl.textContent = "";
+    if (dateEl) dateEl.textContent = "";
+    if (sidebarNameEl) sidebarNameEl.textContent = "غير محدد";
+    if (sidebarCityEl) sidebarCityEl.textContent = "";
+
+    [likeBtn, reportBtn].forEach((btn) => {
+      if (!btn) return;
+      btn.disabled = true;
+      btn.setAttribute("aria-disabled", "true");
+      btn.style.opacity = "0.55";
+    });
+    const countEl = likeBtn?.querySelector(".count");
+    if (countEl) countEl.textContent = "0";
+
+    if (commentForm) {
+      commentForm
+        .querySelectorAll("input, textarea, button")
+        .forEach((el) => {
+          el.disabled = true;
+        });
+      const commentContent = document.getElementById("commentContent");
+      if (commentContent) {
+        commentContent.placeholder = "اختر منشوراً قبل إضافة تعليق";
+      }
+      const commentsBody = commentForm.closest(".card-body");
+      const heading = commentsBody?.querySelector("h3");
+      if (heading) heading.textContent = "التعليقات";
+      commentsBody
+        ?.querySelectorAll(".comment-item")
+        .forEach((item) => item.remove());
+    }
+  };
+
+  if (!postId) {
+    setMissingPostState();
+    return;
+  }
+
   if (postId) {
     try {
       const post = await API.getPost(postId);
@@ -601,8 +680,12 @@ async function initReviewDetailPage() {
       if (titleEl) titleEl.textContent = post.title || "";
       if (descEl) descEl.textContent = post.description || "";
       if (badgeEl) badgeEl.textContent = post.category || "";
-      if (authorEl && cachedUser)
-        authorEl.textContent = cachedUser.full_name || "";
+      const postAuthor = post.user || post.author || post.owner || {};
+      const authorName =
+        postAuthor.full_name || postAuthor.name || post.authorName || post.user_name || "";
+      const authorCity =
+        postAuthor.city || post.authorCity || post.user_city || "";
+      if (authorEl) authorEl.textContent = authorName || "مستخدم";
       if (dateEl && post.createdAt) {
         dateEl.textContent = new Date(post.createdAt).toLocaleDateString(
           "ar-EG",
@@ -611,12 +694,9 @@ async function initReviewDetailPage() {
       const authorCityEl = document.getElementById("reviewAuthorCity");
       const sidebarNameEl = document.getElementById("sidebarAuthorName");
       const sidebarCityEl = document.getElementById("sidebarAuthorCity");
-      if (cachedUser) {
-        if (authorCityEl) authorCityEl.textContent = cachedUser.city || "";
-        if (sidebarNameEl)
-          sidebarNameEl.textContent = cachedUser.full_name || "";
-        if (sidebarCityEl) sidebarCityEl.textContent = cachedUser.city || "";
-      }
+      if (authorCityEl) authorCityEl.textContent = authorCity || "";
+      if (sidebarNameEl) sidebarNameEl.textContent = authorName || "مستخدم";
+      if (sidebarCityEl) sidebarCityEl.textContent = authorCity || "";
     } catch (err) {
       if (err.status === 401)
         showNotification("يجب تسجيل الدخول للاطلاع على التفاصيل", "error");
@@ -652,6 +732,46 @@ async function initReviewDetailPage() {
   const commentForm = document.getElementById("commentForm");
   if (commentForm && postId) {
     const commentRatingInput = document.getElementById("commentRating");
+    const renderCommentStars = (ratingValue) =>
+      Array.from(
+        { length: 5 },
+        (_, i) =>
+          `<svg class="${i < ratingValue ? "star-filled" : "star-empty"}" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
+      ).join("");
+    const prependComment = (content, rating) => {
+      const user = getStoredUser();
+      const authorName = user?.full_name || "أنت";
+      const date = new Date().toLocaleDateString("ar-EG");
+      commentForm.insertAdjacentHTML(
+        "afterend",
+        `<div class="comment-item">
+          <img src="../images/avatar-saeed.jpg" alt="${escHtml(authorName)}">
+          <div class="comment-item-body">
+            <div class="comment-item-header">
+              <div class="author">
+                <span class="name">${escHtml(authorName)}</span>
+                <div class="stars">${renderCommentStars(rating)}</div>
+              </div>
+              <span class="date">${escHtml(date)}</span>
+            </div>
+            <p>${escHtml(content)}</p>
+            <button class="comment-like-btn" type="button">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+              أعجبني
+            </button>
+          </div>
+        </div>`,
+      );
+
+      const heading = commentForm.closest(".card-body")?.querySelector("h3");
+      const match = heading?.textContent.match(/\((\d+)\)/);
+      if (heading && match) {
+        heading.textContent = heading.textContent.replace(
+          /\(\d+\)/,
+          `(${Number(match[1]) + 1})`,
+        );
+      }
+    };
     commentForm.querySelectorAll(".star-rating button").forEach((btn, i) => {
       btn.addEventListener("click", () => {
         if (commentRatingInput) commentRatingInput.value = i + 1;
@@ -670,8 +790,9 @@ async function initReviewDetailPage() {
       const submitBtn = commentForm.querySelector('button[type="submit"]');
       setButtonLoading(submitBtn, true);
       try {
-        await API.createComment(postId, content, rating);
+        const created = await API.createComment(postId, content, rating);
         showNotification("تم إرسال التعليق بنجاح!", "success");
+        prependComment(created?.content || content, Number(created?.rating ?? rating) || 0);
         document.getElementById("commentContent").value = "";
         if (commentRatingInput) commentRatingInput.value = "0";
       } catch (err) {
@@ -1416,7 +1537,7 @@ function updatePageGreeting() {
 
 // ===== Logout =====
 function initLogout() {
-  document.querySelectorAll("a.logout").forEach((el) => {
+  document.querySelectorAll("a.logout, [data-logout]").forEach((el) => {
     el.addEventListener("click", async (e) => {
       e.preventDefault();
       try {
@@ -1434,8 +1555,14 @@ function initMobileMenu() {
   const menuBtn = document.getElementById("mobileMenuBtn");
   const mobileMenu = document.getElementById("mobileMenu");
   if (menuBtn && mobileMenu) {
+    menuBtn.setAttribute("aria-controls", "mobileMenu");
+    menuBtn.setAttribute("aria-expanded", "false");
     menuBtn.addEventListener("click", () => {
       mobileMenu.classList.toggle("show");
+      menuBtn.setAttribute(
+        "aria-expanded",
+        mobileMenu.classList.contains("show") ? "true" : "false",
+      );
     });
   }
 }
@@ -1445,12 +1572,28 @@ function initUserDropdown() {
   const userBtn = document.getElementById("userDropdownBtn");
   const userDropdown = document.getElementById("userDropdown");
   if (userBtn && userDropdown) {
-    userBtn.addEventListener("click", (e) => {
+    userBtn.setAttribute("role", "button");
+    userBtn.setAttribute("tabindex", "0");
+    userBtn.setAttribute("aria-controls", "userDropdown");
+    userBtn.setAttribute("aria-expanded", "false");
+    const toggleDropdown = (e) => {
       e.stopPropagation();
       userDropdown.classList.toggle("show");
+      userBtn.setAttribute(
+        "aria-expanded",
+        userDropdown.classList.contains("show") ? "true" : "false",
+      );
+    };
+    userBtn.addEventListener("click", toggleDropdown);
+    userBtn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleDropdown(e);
+      }
     });
     document.addEventListener("click", () => {
       userDropdown.classList.remove("show");
+      userBtn.setAttribute("aria-expanded", "false");
     });
   }
 }
@@ -1470,6 +1613,24 @@ function initSidebar() {
       overlay.classList.remove("open");
     });
   }
+}
+
+function initAccessibleControls() {
+  document.querySelectorAll("button:not([aria-label])").forEach((button) => {
+    const title = button.getAttribute("title");
+    const visibleText = button.textContent.trim();
+    if (title) {
+      button.setAttribute("aria-label", title);
+    } else if (!visibleText && button.id === "mobileMenuBtn") {
+      button.setAttribute("aria-label", "فتح القائمة");
+    } else if (!visibleText && button.id === "sidebarToggle") {
+      button.setAttribute("aria-label", "فتح لوحة التنقل");
+    } else if (!visibleText && button.id === "sidebarClose") {
+      button.setAttribute("aria-label", "إغلاق لوحة التنقل");
+    } else if (!visibleText && button.classList.contains("navbar-btn")) {
+      button.setAttribute("aria-label", "الإشعارات");
+    }
+  });
 }
 
 // ===== Password Toggle =====
@@ -1550,7 +1711,7 @@ function initImageUpload() {
         (src, i) => `
       <div class="image-preview-item">
         <img src="${src}" alt="صورة ${i + 1}">
-        <button type="button" class="remove" onclick="removeImage(${i})">
+        <button type="button" class="remove" onclick="removeImage(${i})" aria-label="إزالة الصورة ${i + 1}">
           <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
@@ -1702,6 +1863,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initMobileMenu();
   initUserDropdown();
   initSidebar();
+  initAccessibleControls();
   initPasswordToggle();
   initStarRating();
   initImageUpload();
@@ -1709,7 +1871,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Populate navbar with cached user
   const cachedUser = getStoredUser();
-  if (cachedUser) updateNavbarUser(cachedUser);
+  if (cachedUser) {
+    updateNavbarUser(cachedUser);
+    updateRoleBasedUI(cachedUser);
+  }
 
   // Page-specific
   initLoginPage();

@@ -12,11 +12,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       categorySelect.innerHTML =
         '<option value="">اختر التصنيف</option>' +
         list
-          .map((category) => {
-            const name =
-              category.name || category.category || category.title || category;
-            return `<option value="${MultaqaAPI.escapeHTML(name)}">${MultaqaAPI.escapeHTML(name)}</option>`;
-          })
+        .map((category) => {
+          const name =
+            category.name || category.category || category.title || category;
+          const value =
+            category.id ?? category.category_id ?? category._id ?? name;
+          return `<option value="${MultaqaAPI.escapeHTML(value)}">${MultaqaAPI.escapeHTML(name)}</option>`;
+        })
           .join("");
     }
   } catch (_) {

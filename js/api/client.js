@@ -2,6 +2,7 @@
 // The backend is expected to be mounted behind /api in production (see vercel.json).
 (function () {
   const API_BASE = window.API_BASE || "/api";
+  const CSRF_STORAGE_KEY = `csrfToken:${API_BASE}`;
   const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
   function cleanPath(path) {
@@ -40,7 +41,7 @@
 
   async function getCsrfToken(force = false) {
     if (!force) {
-      const cached = sessionStorage.getItem("csrfToken");
+      const cached = sessionStorage.getItem(CSRF_STORAGE_KEY);
       if (cached) return cached;
     }
 
@@ -55,7 +56,7 @@
     }
 
     const data = await response.json();
-    sessionStorage.setItem("csrfToken", data.csrfToken);
+    sessionStorage.setItem(CSRF_STORAGE_KEY, data.csrfToken);
     return data.csrfToken;
   }
 
@@ -88,6 +89,7 @@
       (response.status === 401 || response.status === 403) &&
       UNSAFE_METHODS.has(method)
     ) {
+      sessionStorage.removeItem(CSRF_STORAGE_KEY);
       sessionStorage.removeItem("csrfToken");
     }
 
@@ -165,6 +167,7 @@
     try {
       await apiFetch("/auth/logout", { method: "POST" });
     } finally {
+      sessionStorage.removeItem(CSRF_STORAGE_KEY);
       sessionStorage.removeItem("csrfToken");
       window.location.href = "/pages/login.html";
     }

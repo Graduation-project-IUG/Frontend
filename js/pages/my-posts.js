@@ -1,13 +1,15 @@
 
 document.addEventListener("DOMContentLoaded", async () => {
   await MultaqaAPI.loadCurrentUser();
-  const listEl = document.getElementById("myPostsList");
+  const listEl =
+    document.getElementById("myPostsList") || document.getElementById("postsList");
   const counterEl = document.getElementById("myPostsCounter");
   const searchInput = document.getElementById("postsSearch");
   let posts = [];
+  if (!listEl) return;
 
   function render(items) {
-    counterEl.textContent = items.length;
+    if (counterEl) counterEl.textContent = items.length;
     if (!items.length) {
       listEl.innerHTML = `<div class="empty-state"><h3>لا توجد منشورات بعد</h3><p>عندما تضيف منشوراً جديداً سيظهر هنا مباشرة.</p><a class="btn btn-primary" href="add-post.html">إضافة منشور</a></div>`;
       return;
@@ -33,11 +35,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   try {
-    const data = await MultaqaAPI.apiFetch("/my-posts");
+    const data = await MultaqaAPI.apiFetch("/user/posts");
     posts = Array.isArray(data) ? data : data?.posts || [];
     render(posts);
   } catch (error) {
-    listEl.innerHTML = `<div class="empty-state"><h3>هذه الصفحة أصبحت ديناميكية</h3><p>تحتاج endpoint من الـbackend باسم <code>GET /my-posts</code> يرجع منشورات المستخدم الحالي.</p></div>`;
+    listEl.innerHTML = `<div class="empty-state"><h3>تعذر تحميل المنشورات</h3><p>${MultaqaAPI.escapeHTML(error.message || "يرجى تسجيل الدخول ثم المحاولة مرة أخرى.")}</p></div>`;
   }
 
   searchInput?.addEventListener("input", () => {
@@ -59,4 +61,3 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
-

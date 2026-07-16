@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await MultaqaAPI.loadCurrentUser();
   const id = MultaqaAPI.getParam("id", "1");
   const commentsEl = document.getElementById("commentsList");
+  if (!commentsEl) return;
   let comments = [];
 
   function renderPost(post) {
@@ -88,4 +89,3 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
-

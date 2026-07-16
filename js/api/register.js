@@ -1,6 +1,8 @@
 
 document.addEventListener("DOMContentLoaded", () => {
-  const form = document.getElementById("register-form");
+  const form =
+    document.getElementById("register-form") ||
+    document.getElementById("registerForm");
   if (!form || !window.MultaqaAPI) return;
 
   form.addEventListener("submit", async (event) => {
@@ -13,9 +15,15 @@ document.addEventListener("DOMContentLoaded", () => {
       await MultaqaAPI.apiFetch("/user/register", {
         method: "POST",
         body: {
-          full_name: formData.get("full_name"),
-          email: formData.get("email"),
-          password: formData.get("password"),
+          full_name:
+            formData.get("full_name") ||
+            document.getElementById("registerName")?.value,
+          email:
+            formData.get("email") ||
+            document.getElementById("registerEmail")?.value,
+          password:
+            formData.get("password") ||
+            document.getElementById("registerPassword")?.value,
         },
       });
       MultaqaAPI.notify("تم إنشاء الحساب بنجاح. يمكنك تسجيل الدخول الآن.");
@@ -27,4 +35,3 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
-

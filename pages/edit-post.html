@@ -31,12 +31,34 @@
               ><a href="about.html">عن المنصة</a>
             </div>
             <div class="navbar-actions">
-              <a class="btn btn-secondary btn-sm" href="profile.html"
+              <a class="btn btn-secondary btn-sm navbar-inline-action" href="profile.html"
                 ><span data-current-user-name>الملف الشخصي</span></a
-              ><a class="btn btn-danger btn-sm" href="login.html" data-logout
+              ><a class="btn btn-danger btn-sm navbar-inline-action" href="login.html" data-logout
                 >تسجيل الخروج</a
               >
+              <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="فتح القائمة">
+                <svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M3 12h18M3 6h18M3 18h18" />
+                </svg>
+              </button>
             </div>
+          </div>
+          <div class="mobile-menu" id="mobileMenu">
+            <a href="../index.html">الرئيسية</a>
+            <a href="my-posts.html">منشوراتي</a>
+            <a href="add-post.html">إضافة منشور</a>
+            <a href="about.html">عن المنصة</a>
+            <div class="mobile-divider"></div>
+            <a href="profile.html">الملف الشخصي</a>
+            <a href="settings.html">الإعدادات</a>
+            <a href="login.html" class="logout" data-logout style="color: var(--danger)">تسجيل الخروج</a>
           </div>
         </div>
       </nav>

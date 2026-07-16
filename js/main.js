@@ -1150,7 +1150,7 @@ async function initMyPostsPage() {
       if (bioEl) bioEl.textContent = profile.bio || "لا توجد نبذة شخصية.";
     }
 
-    const posts = Array.isArray(postsRaw) ? postsRaw : [];
+    const posts = unwrapApiArray(postsRaw, ["posts"]);
 
     if (posts.length === 0) {
       postsListEl.innerHTML =
@@ -1424,7 +1424,7 @@ async function initFeedPage() {
 
   try {
     const [postsRaw, categoriesRaw, profile] = await Promise.all([
-      API.getPosts({ limit: 50 }),
+      API.getPosts({ page: 1, limit: 50 }),
       API.getCategories().catch(() => []),
       API.getProfile().catch(() => getStoredUser()),
     ]);
@@ -1462,7 +1462,7 @@ async function initIndexPage() {
     '<p style="text-align:center;color:var(--gray-400);padding:2rem;grid-column:1/-1;">جاري التحميل...</p>';
 
   try {
-    const postsRaw = await API.getPosts({ limit: 6 }).catch(() => []);
+    const postsRaw = await API.getPosts({ page: 1, limit: 6 }).catch(() => []);
     const posts = Array.isArray(postsRaw) ? postsRaw : [];
 
     if (posts.length === 0) {
@@ -1600,7 +1600,7 @@ async function initDashboardPage() {
   const [usersRes, reportsRes, postsRes, catsRes] = await Promise.allSettled([
     API.getUsers(),
     API.getReports(),
-    API.getPosts({ limit: 100 }),
+    API.getPosts({ page: 1, limit: 100 }),
     API.getCategories(),
   ]);
 

@@ -14,10 +14,21 @@ async function getCsrfToken() {
     });
     if (res.ok) {
       const data = await res.json();
-      token = data.csrfToken;
-      sessionStorage.setItem(CSRF_STORAGE_KEY, token);
+      if (data.csrfToken) {
+        token = data.csrfToken;
+        sessionStorage.setItem(CSRF_STORAGE_KEY, token);
+      }
     }
-  } catch {}
+  } catch (error) {
+    const csrfError = new Error("تعذر تجهيز رمز الحماية CSRF");
+    csrfError.status = 0;
+    throw csrfError;
+  }
+  if (!token) {
+    const csrfError = new Error("تعذر تجهيز رمز الحماية CSRF");
+    csrfError.status = 0;
+    throw csrfError;
+  }
   return token;
 }
 
@@ -32,11 +43,10 @@ async function apiFetch(path, options = {}) {
 
   if (unsafeMethods.includes(method)) {
     const csrf = await getCsrfToken();
-    if (csrf) headers["x-csrf-token"] = csrf;
+    headers["x-csrf-token"] = csrf;
   }
 
   let res;
-  console.log(`API Request: ${method} ${path}`, options);
   try {
     res = await fetch(`${API_BASE}${path}`, {
       ...options,
@@ -97,11 +107,16 @@ const API = {
     apiFetch("/user/profile", { method: "PUT", body: JSON.stringify(data) }),
 
   // Posts
-  createPost: (category, title, description) =>
-    apiFetch("/post", {
+  createPost: (category, title, description, extra = {}) => {
+    const payload =
+      typeof category === "object" && category !== null
+        ? category
+        : { category, title, description, ...extra };
+    return apiFetch("/post", {
       method: "POST",
-      body: JSON.stringify({ category, title, description }),
-    }),
+      body: JSON.stringify(payload),
+    });
+  },
   getPost: (id) => apiFetch(`/post/${id}`),
   updatePost: (id, data) =>
     apiFetch(`/post/${id}`, { method: "PUT", body: JSON.stringify(data) }),
@@ -234,9 +249,16 @@ function isAuthOnlyPage() {
   return AUTH_ONLY_PAGES.has(getCurrentPageName());
 }
 
+function isAdminRole(role) {
+  if (role && typeof role === "object") {
+    role = role.name || role.role || role.value;
+  }
+  return String(role || "").trim().toLowerCase() === "admin";
+}
+
 function updateRoleBasedUI(user) {
   if (!user) return;
-  const isAdmin = user.role === "Admin";
+  const isAdmin = isAdminRole(user.role);
   document.querySelectorAll("a[href]").forEach((link) => {
     const pageName = new URL(link.href, window.location.href).pathname
       .split("/")
@@ -259,7 +281,7 @@ async function ensurePageAccess() {
       updateNavbarUser(user);
       updateRoleBasedUI(user);
 
-      if (user?.role !== "Admin") {
+      if (!isAdminRole(user?.role)) {
         if (isAdminOnlyPage()) {
           window.location.replace("../index.html");
           return false;
@@ -366,7 +388,7 @@ function updateNavbarUser(user) {
     el.textContent = user.email || el.textContent;
   });
   document.querySelectorAll(".navbar-user-info .role").forEach((el) => {
-    el.textContent = user.role === "Admin" ? "أدمن" : "مستخدم";
+    el.textContent = isAdminRole(user.role) ? "أدمن" : "مستخدم";
   });
   updateRoleBasedUI(user);
 }
@@ -386,10 +408,8 @@ function initLoginPage() {
     try {
       const data = await API.login(email, password, rememberPassword);
       if (data.csrfToken) sessionStorage.setItem(CSRF_STORAGE_KEY, data.csrfToken);
-      try {
-        const profile = await API.getProfile();
-        setStoredUser(profile);
-      } catch {}
+      const profile = await API.getProfile();
+      setStoredUser(profile);
       window.location.href = "../index.html";
     } catch (err) {
       showNotification(
@@ -555,6 +575,8 @@ function initAddReviewPage() {
     const category = document.getElementById("postCategory").value;
     const title = document.getElementById("postTitle").value.trim();
     const description = descEl ? descEl.value.trim() : "";
+    const rating = Number(ratingInput?.value || 0) || undefined;
+    const priceRange = document.getElementById("postPrice")?.value.trim();
 
     if (!category) {
       showNotification("الرجاء اختيار التصنيف", "error");
@@ -575,7 +597,13 @@ function initAddReviewPage() {
         });
         showNotification("تم تحديث المراجعة بنجاح!", "success");
       } else {
-        await API.createPost(category, title, description || undefined);
+        await API.createPost({
+          category,
+          title,
+          description: description || undefined,
+          rating,
+          price_range: priceRange || undefined,
+        });
         showNotification("تم نشر المراجعة بنجاح!", "success");
       }
       setTimeout(() => {
@@ -669,6 +697,90 @@ async function initReviewDetailPage() {
     return;
   }
 
+  const detailCommentForm = document.getElementById("commentForm");
+  const commentsBody = detailCommentForm?.closest(".card-body");
+  const commentsHeading = commentsBody?.querySelector("h3");
+  const renderCommentStarsHtml = (ratingValue) =>
+    Array.from(
+      { length: 5 },
+      (_, i) =>
+        `<svg class="${i < ratingValue ? "star-filled" : "star-empty"}" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
+    ).join("");
+  const normalizeComment = (comment) => {
+    const author = comment.user || comment.author || comment.owner || {};
+    return {
+      content: comment.content || comment.comment || comment.text || "",
+      rating: Number(comment.rating || comment.rate || 0) || 0,
+      authorName:
+        author.full_name ||
+        author.name ||
+        comment.authorName ||
+        comment.user_name ||
+        "مستخدم",
+      createdAt: comment.createdAt || comment.created_at || comment.date,
+    };
+  };
+  const extractComments = (source) => {
+    const candidates = [
+      source?.comments,
+      source?.reviews,
+      source?.data?.comments,
+      source?.post?.comments,
+    ];
+    return candidates.find(Array.isArray) || [];
+  };
+  const renderComments = (comments) => {
+    if (!commentsBody || !detailCommentForm) return;
+    commentsBody
+      .querySelectorAll(".comment-item, .comments-empty")
+      .forEach((item) => item.remove());
+    if (commentsHeading) {
+      commentsHeading.textContent = `التعليقات (${comments.length})`;
+    }
+    if (!comments.length) {
+      detailCommentForm.insertAdjacentHTML(
+        "afterend",
+        '<p class="comments-empty" style="text-align:center;color:var(--gray-400);padding:1rem 0;">لا توجد تعليقات بعد.</p>',
+      );
+      return;
+    }
+    detailCommentForm.insertAdjacentHTML(
+      "afterend",
+      comments
+        .map((rawComment) => {
+          const comment = normalizeComment(rawComment);
+          const date = comment.createdAt
+            ? new Date(comment.createdAt).toLocaleDateString("ar-EG")
+            : "";
+          return `<div class="comment-item">
+            <img src="../images/avatar-saeed.jpg" alt="${escHtml(comment.authorName)}">
+            <div class="comment-item-body">
+              <div class="comment-item-header">
+                <div class="author">
+                  <span class="name">${escHtml(comment.authorName)}</span>
+                  <div class="stars">${renderCommentStarsHtml(comment.rating)}</div>
+                </div>
+                <span class="date">${escHtml(date)}</span>
+              </div>
+              <p>${escHtml(comment.content)}</p>
+              <button class="comment-like-btn" type="button">أعجبني</button>
+            </div>
+          </div>`;
+        })
+        .join(""),
+    );
+  };
+  const loadPostComments = async (post) => {
+    let comments = extractComments(post);
+    if (!comments.length) {
+      try {
+        const details = await apiFetch(`/post/${postId}/details`);
+        comments = extractComments(details);
+      } catch {}
+    }
+    renderComments(comments);
+  };
+
   if (postId) {
     try {
       const post = await API.getPost(postId);
@@ -697,9 +809,12 @@ async function initReviewDetailPage() {
       if (authorCityEl) authorCityEl.textContent = authorCity || "";
       if (sidebarNameEl) sidebarNameEl.textContent = authorName || "مستخدم";
       if (sidebarCityEl) sidebarCityEl.textContent = authorCity || "";
+      await loadPostComments(post);
     } catch (err) {
       if (err.status === 401)
         showNotification("يجب تسجيل الدخول للاطلاع على التفاصيل", "error");
+      setMissingPostState();
+      return;
     }
   }
 
@@ -763,6 +878,10 @@ async function initReviewDetailPage() {
         </div>`,
       );
 
+      commentForm
+        .closest(".card-body")
+        ?.querySelectorAll(".comments-empty")
+        .forEach((item) => item.remove());
       const heading = commentForm.closest(".card-body")?.querySelector("h3");
       const match = heading?.textContent.match(/\((\d+)\)/);
       if (heading && match) {
@@ -770,6 +889,8 @@ async function initReviewDetailPage() {
           /\(\d+\)/,
           `(${Number(match[1]) + 1})`,
         );
+      } else if (heading) {
+        heading.textContent = "التعليقات (1)";
       }
     };
     commentForm.querySelectorAll(".star-rating button").forEach((btn, i) => {
@@ -921,6 +1042,20 @@ async function initMyPostsPage() {
       });
 
     const filterContainer = document.getElementById("filterTags");
+    const searchInput = document.getElementById("myPostsSearch");
+    const applyMyPostsFilters = () => {
+      const activeFilter =
+        filterContainer?.querySelector(".filter-tag.active")?.textContent.trim() ||
+        "الكل";
+      const term = (searchInput?.value || "").trim().toLowerCase();
+      postsListEl.querySelectorAll(".post-card").forEach((card) => {
+        const category = card.querySelector(".badge")?.textContent.trim() || "";
+        const searchable = card.textContent.toLowerCase();
+        const matchesCategory = activeFilter === "الكل" || category === activeFilter;
+        const matchesSearch = !term || searchable.includes(term);
+        card.style.display = matchesCategory && matchesSearch ? "" : "none";
+      });
+    };
     if (filterContainer) {
       filterContainer.querySelectorAll(".filter-tag").forEach((tag) => {
         tag.addEventListener("click", () => {
@@ -928,16 +1063,11 @@ async function initMyPostsPage() {
             .querySelectorAll(".filter-tag")
             .forEach((t) => t.classList.remove("active"));
           tag.classList.add("active");
-          const filter = tag.textContent.trim();
-          postsListEl.querySelectorAll(".post-card").forEach((card) => {
-            const category =
-              card.querySelector(".badge")?.textContent.trim() || "";
-            card.style.display =
-              filter === "الكل" || category === filter ? "" : "none";
-          });
+          applyMyPostsFilters();
         });
       });
     }
+    if (searchInput) searchInput.addEventListener("input", applyMyPostsFilters);
   } catch (err) {
     if (err.status === 401) {
       showNotification("يجب تسجيل الدخول أولاً", "error");
@@ -1542,7 +1672,10 @@ function initLogout() {
       e.preventDefault();
       try {
         await API.logout();
-      } catch {}
+      } catch (err) {
+        showNotification(parseApiError(err) || "تعذر تسجيل الخروج. حاول مرة أخرى.", "error");
+        return;
+      }
       clearAuth();
       const inPages = window.location.pathname.includes("/pages/");
       window.location.href = inPages ? "login.html" : "pages/login.html";
@@ -1615,12 +1748,25 @@ function initSidebar() {
   }
 }
 
+function ensureDashboardLogoutLink() {
+  const footer = document.querySelector(".dashboard-sidebar-footer");
+  if (!footer || footer.querySelector("[data-logout]")) return;
+  footer.insertAdjacentHTML(
+    "beforeend",
+    '<a href="login.html" class="logout" data-logout style="color:var(--danger);margin-top:0.75rem;">تسجيل الخروج</a>',
+  );
+}
+
 function initAccessibleControls() {
   document.querySelectorAll("button:not([aria-label])").forEach((button) => {
     const title = button.getAttribute("title");
     const visibleText = button.textContent.trim();
     if (title) {
       button.setAttribute("aria-label", title);
+    } else if (!visibleText && button.closest(".star-rating")) {
+      const stars = Array.from(button.closest(".star-rating").querySelectorAll("button"));
+      const index = stars.indexOf(button) + 1;
+      button.setAttribute("aria-label", `تقييم ${index} من 5`);
     } else if (!visibleText && button.id === "mobileMenuBtn") {
       button.setAttribute("aria-label", "فتح القائمة");
     } else if (!visibleText && button.id === "sidebarToggle") {
@@ -1658,6 +1804,9 @@ function initStarRating() {
   document.querySelectorAll(".star-rating").forEach((container) => {
     const stars = container.querySelectorAll("button");
     const ratingValue = container.querySelector(".rating-value");
+    const hiddenRating = container
+      .closest("form")
+      ?.querySelector('input[type="hidden"][id$="Rating"]');
     let currentRating = 0;
 
     stars.forEach((star, index) => {
@@ -1668,6 +1817,7 @@ function initStarRating() {
       star.addEventListener("click", () => {
         currentRating = index + 1;
         updateStars(stars, currentRating);
+        if (hiddenRating) hiddenRating.value = String(currentRating);
         if (ratingValue) ratingValue.textContent = currentRating + " من 5";
       });
     });
@@ -1731,11 +1881,19 @@ function initFilterTags() {
   const filterContainer = document.getElementById("filterTags");
   if (!filterContainer) return;
   filterContainer.querySelectorAll(".filter-tag").forEach((tag) => {
+    tag.setAttribute("role", "button");
+    tag.setAttribute("tabindex", "0");
     tag.addEventListener("click", () => {
       filterContainer
         .querySelectorAll(".filter-tag")
         .forEach((t) => t.classList.remove("active"));
       tag.classList.add("active");
+    });
+    tag.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        tag.click();
+      }
     });
   });
 }
@@ -1761,12 +1919,15 @@ function initLikeToggle() {
 function initProfileEdit() {
   const editBtn = document.getElementById("editProfileBtn");
   const inputs = document.querySelectorAll(".profile-form .form-input");
+  const editableInputs = Array.from(inputs).filter(
+    (input) => input.id !== "profileEmail",
+  );
   if (!editBtn) return;
 
   editBtn.addEventListener("click", async () => {
     const isEditing = editBtn.dataset.editing === "true";
     if (!isEditing) {
-      inputs.forEach((input) => {
+      editableInputs.forEach((input) => {
         input.removeAttribute("disabled");
         input.classList.remove("bg-gray");
       });
@@ -1800,7 +1961,7 @@ function initProfileEdit() {
         const updated = await API.getProfile();
         setStoredUser(updated);
         updateNavbarUser(updated);
-        inputs.forEach((input) => {
+        editableInputs.forEach((input) => {
           input.setAttribute("disabled", "true");
           input.classList.add("bg-gray");
         });
@@ -1863,6 +2024,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initMobileMenu();
   initUserDropdown();
   initSidebar();
+  ensureDashboardLogoutLink();
   initAccessibleControls();
   initPasswordToggle();
   initStarRating();
@@ -1907,11 +2069,5 @@ style.textContent = `
     from { transform: translate(-50%, 0);     opacity: 1; }
     to   { transform: translate(-50%, -20px); opacity: 0; }
   }
-  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; padding:1rem; }
-  .modal-overlay.show { display:flex; }
-  .modal-box { background:#fff; border-radius:1rem; padding:1.5rem; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.2); }
-  .modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem; border-bottom:1px solid var(--gray-100); padding-bottom:1rem; }
-  .modal-close-btn { background:none; border:none; padding:0.375rem; cursor:pointer; color:var(--gray-400); border-radius:.5rem; line-height:0; }
-  .modal-close-btn:hover { color:var(--gray-700); background:var(--gray-100); }
 `;
 document.head.appendChild(style);

@@ -482,6 +482,57 @@ main {
   padding: 1.5rem;
 }
 
+/* ===== Modals ===== */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+.modal-box {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--gray-100);
+  padding-bottom: 1rem;
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  padding: 0.375rem;
+  cursor: pointer;
+  color: var(--gray-400);
+  border-radius: 0.5rem;
+  line-height: 0;
+}
+
+.modal-close-btn:hover {
+  color: var(--gray-700);
+  background: var(--gray-100);
+}
+
 /* ===== Forms ===== */
 .form-group {
   margin-bottom: 1.25rem;
@@ -2071,6 +2122,11 @@ textarea.form-input {
   .dashboard-sidebar {
     position: sticky;
     transform: translateX(0);
+  }
+
+  .dashboard-sidebar-header button,
+  .dashboard-topbar-left > button {
+    display: none !important;
   }
 }
 

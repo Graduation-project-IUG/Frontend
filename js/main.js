@@ -220,20 +220,27 @@ function clearAuth() {
 const ADMIN_ONLY_PAGES = new Set([
   "add-user.html",
   "add-category.html",
-  "dashboard.html",
-  "dashboard-users.html",
-  "dashboard-reports.html",
-  "dashboard-categories.html",
 ]);
 
 const AUTH_ONLY_PAGES = new Set([
   "add-post.html",
   "add-review.html",
   "edit-post.html",
+  "feed.html",
   "my-posts.html",
+  "post.html",
+  "review-detail.html",
   "profile.html",
   "settings.html",
 ]);
+
+const AUTH_LANDING_PAGES = new Set([
+  "login.html",
+  "register.html",
+  "forgot_password.html",
+]);
+
+const GUEST_ALLOWED_PAGES = new Set(["index.html", ...AUTH_LANDING_PAGES]);
 
 function getCurrentPageName() {
   return (
@@ -241,12 +248,43 @@ function getCurrentPageName() {
   );
 }
 
+function isPagesDirectory() {
+  return window.location.pathname.split("/").filter(Boolean).includes("pages");
+}
+
+function pageHref(pageName) {
+  if (pageName === "index.html") {
+    return isPagesDirectory() ? "../index.html" : "index.html";
+  }
+  return isPagesDirectory() ? pageName : `pages/${pageName}`;
+}
+
+function isAdminOnlyPageName(pageName) {
+  return pageName.includes("dashboard") || ADMIN_ONLY_PAGES.has(pageName);
+}
+
 function isAdminOnlyPage() {
-  return ADMIN_ONLY_PAGES.has(getCurrentPageName());
+  return isAdminOnlyPageName(getCurrentPageName());
 }
 
 function isAuthOnlyPage() {
   return AUTH_ONLY_PAGES.has(getCurrentPageName());
+}
+
+function isAuthLandingPage() {
+  return AUTH_LANDING_PAGES.has(getCurrentPageName());
+}
+
+function isGuestAllowedPage() {
+  return GUEST_ALLOWED_PAGES.has(getCurrentPageName());
+}
+
+function shouldCheckPageAccess() {
+  return true;
+}
+
+function shouldHideDuringAccessCheck() {
+  return isAdminOnlyPage() || isAuthOnlyPage() || isAuthLandingPage() || !isGuestAllowedPage();
 }
 
 function isAdminRole(role) {
@@ -264,14 +302,51 @@ function updateRoleBasedUI(user) {
       .split("/")
       .filter(Boolean)
       .pop();
-    if (ADMIN_ONLY_PAGES.has(pageName)) link.hidden = !isAdmin;
+    if (pageName && isAdminOnlyPageName(pageName)) link.hidden = !isAdmin;
+  });
+}
+
+function updateGuestUI() {
+  document
+    .querySelectorAll(".navbar-user, .navbar-btn, [data-authenticated-only]")
+    .forEach((el) => {
+      el.hidden = true;
+    });
+
+  document.querySelectorAll("[data-logout], a.logout").forEach((el) => {
+    el.removeAttribute("data-logout");
+    el.hidden = true;
+  });
+
+  const actions = document.querySelector(".navbar-actions");
+  if (actions && !actions.querySelector(".guest-auth-actions")) {
+    actions.insertAdjacentHTML(
+      "afterbegin",
+      `<div class="guest-auth-actions" style="display:flex;align-items:center;gap:0.5rem;">
+        <a class="btn btn-secondary btn-sm" href="${pageHref("login.html")}">تسجيل الدخول</a>
+        <a class="btn btn-primary btn-sm" href="${pageHref("register.html")}">إنشاء حساب</a>
+      </div>`,
+    );
+  }
+
+  document.querySelectorAll("a[href]").forEach((link) => {
+    const pageName = new URL(link.href, window.location.href).pathname
+      .split("/")
+      .filter(Boolean)
+      .pop();
+    if (!pageName || GUEST_ALLOWED_PAGES.has(pageName)) return;
+    if (isAdminOnlyPageName(pageName) || AUTH_ONLY_PAGES.has(pageName)) {
+      link.href = pageHref("login.html");
+    } else {
+      link.href = pageHref("index.html");
+    }
   });
 }
 
 let pageAccessPromise;
 
 async function ensurePageAccess() {
-  if (!isAdminOnlyPage() && !isAuthOnlyPage()) return true;
+  if (!shouldCheckPageAccess()) return true;
   if (pageAccessPromise) return pageAccessPromise;
 
   pageAccessPromise = (async () => {
@@ -283,16 +358,31 @@ async function ensurePageAccess() {
 
       if (!isAdminRole(user?.role)) {
         if (isAdminOnlyPage()) {
-          window.location.replace("../index.html");
+          window.location.replace(pageHref("feed.html"));
           return false;
         }
+      }
+
+      if (getCurrentPageName() === "index.html" || isAuthLandingPage()) {
+        window.location.replace(pageHref("feed.html"));
+        return false;
       }
 
       document.documentElement.classList.remove("auth-checking");
       return true;
     } catch (error) {
       clearAuth();
-      const destination = error.status === 401 ? "login.html" : "../index.html";
+      document.documentElement.classList.remove("auth-checking");
+
+      if (isGuestAllowedPage()) {
+        updateGuestUI();
+        return true;
+      }
+
+      const destination =
+        isAdminOnlyPage() || isAuthOnlyPage()
+          ? pageHref("login.html")
+          : pageHref("index.html");
       window.location.replace(destination);
       return false;
     }
@@ -303,7 +393,7 @@ async function ensurePageAccess() {
 
 window.MultaqaAccess = { ensurePageAccess };
 
-if (isAdminOnlyPage() || isAuthOnlyPage()) {
+if (shouldHideDuringAccessCheck()) {
   document.documentElement.classList.add("auth-checking");
 }
 
@@ -376,6 +466,67 @@ function escHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
+function firstDefined(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== "");
+}
+
+function unwrapApiArray(payload, preferredKeys = []) {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+
+  for (const key of [...preferredKeys, "posts", "data", "items", "results", "categories", "users"]) {
+    const value = payload[key];
+    if (Array.isArray(value)) return value;
+    if (value && typeof value === "object") {
+      const nested = unwrapApiArray(value, preferredKeys);
+      if (nested.length) return nested;
+    }
+  }
+
+  return [];
+}
+
+function getEntityId(entity) {
+  return firstDefined(entity?.id, entity?._id, entity?.post_id, entity?.postId);
+}
+
+function getCategoryName(post) {
+  const category = post?.category;
+  if (category && typeof category === "object") {
+    return firstDefined(category.name, category.title, category.category, category.id, "غير مصنف");
+  }
+  return firstDefined(category, post?.category_name, post?.categoryName, "غير مصنف");
+}
+
+function getPostAuthor(post) {
+  const author = post?.user || post?.author || post?.owner || {};
+  return {
+    name: firstDefined(author.full_name, author.name, post?.authorName, post?.user_name, "مستخدم"),
+    city: firstDefined(author.city, post?.authorCity, post?.user_city, ""),
+  };
+}
+
+function getPostDate(post) {
+  const value = firstDefined(post?.createdAt, post?.created_at, post?.date, post?.updatedAt);
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("ar-EG");
+}
+
+function getPostCount(post, ...keys) {
+  for (const key of keys) {
+    const value = post?.[key];
+    if (typeof value === "number") return value;
+    if (Array.isArray(value)) return value.length;
+  }
+  return 0;
+}
+
+function truncateText(text, maxLength = 220) {
+  const value = String(text || "").trim();
+  return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
+}
+
 // ===== Navbar User Update =====
 function updateNavbarUser(user) {
   if (!user) return;
@@ -410,7 +561,7 @@ function initLoginPage() {
       if (data.csrfToken) sessionStorage.setItem(CSRF_STORAGE_KEY, data.csrfToken);
       const profile = await API.getProfile();
       setStoredUser(profile);
-      window.location.href = "../index.html";
+      window.location.href = "feed.html";
     } catch (err) {
       showNotification(
         parseApiError(err) || "البريد الإلكتروني أو كلمة المرور غير صحيحة",
@@ -437,6 +588,15 @@ function initRegisterPage() {
     setButtonLoading(submitBtn, true);
     try {
       await API.register(full_name, email, password);
+      const profile = await API.getProfile().catch(() => null);
+      if (profile) {
+        setStoredUser(profile);
+        showNotification("تم إنشاء الحساب بنجاح.", "success");
+        setTimeout(() => {
+          window.location.href = "feed.html";
+        }, 800);
+        return;
+      }
       showNotification(
         "تم إنشاء الحساب بنجاح! يمكنك تسجيل الدخول الآن.",
         "success",
@@ -480,7 +640,7 @@ async function initProfilePage() {
 
     const statCards = document.querySelectorAll(".profile-stat-card .value");
     if (statCards[0] && profile.city) statCards[0].textContent = profile.city;
-    const posts = Array.isArray(postsRaw) ? postsRaw : [];
+    const posts = unwrapApiArray(postsRaw, ["posts"]);
     if (statCards[1]) statCards[1].textContent = posts.length;
 
     const locationEl = document.querySelector(".profile-info .location");
@@ -770,8 +930,9 @@ async function initReviewDetailPage() {
         .join(""),
     );
   };
-  const loadPostComments = async (post) => {
+  const loadPostComments = async (post, details) => {
     let comments = extractComments(post);
+    if (!comments.length && details) comments = extractComments(details);
     if (!comments.length) {
       try {
         const details = await apiFetch(`/post/${postId}/details`);
@@ -783,33 +944,39 @@ async function initReviewDetailPage() {
 
   if (postId) {
     try {
-      const post = await API.getPost(postId);
+      let details = null;
+      let post = null;
+      try {
+        post = await API.getPost(postId);
+      } catch (postError) {
+        details = await apiFetch(`/post/${postId}/details`);
+        post =
+          details?.post ||
+          details?.data?.post ||
+          details?.data ||
+          details;
+        if (!post || typeof post !== "object") throw postError;
+      }
       const titleEl = document.querySelector("[data-post-title]");
       const descEl = document.querySelector("[data-post-desc]");
       const badgeEl = document.querySelector(".review-detail-badge");
       const authorEl = document.getElementById("reviewAuthorName");
       const dateEl = document.getElementById("reviewAuthorDate");
-      if (titleEl) titleEl.textContent = post.title || "";
-      if (descEl) descEl.textContent = post.description || "";
-      if (badgeEl) badgeEl.textContent = post.category || "";
-      const postAuthor = post.user || post.author || post.owner || {};
-      const authorName =
-        postAuthor.full_name || postAuthor.name || post.authorName || post.user_name || "";
-      const authorCity =
-        postAuthor.city || post.authorCity || post.user_city || "";
+      if (titleEl) titleEl.textContent = firstDefined(post.title, post.name, "");
+      if (descEl) descEl.textContent = firstDefined(post.description, post.content, post.body, "");
+      if (badgeEl) badgeEl.textContent = getCategoryName(post);
+      const postAuthor = getPostAuthor(post);
+      const authorName = postAuthor.name || "";
+      const authorCity = postAuthor.city || "";
       if (authorEl) authorEl.textContent = authorName || "مستخدم";
-      if (dateEl && post.createdAt) {
-        dateEl.textContent = new Date(post.createdAt).toLocaleDateString(
-          "ar-EG",
-        );
-      }
+      if (dateEl) dateEl.textContent = getPostDate(post);
       const authorCityEl = document.getElementById("reviewAuthorCity");
       const sidebarNameEl = document.getElementById("sidebarAuthorName");
       const sidebarCityEl = document.getElementById("sidebarAuthorCity");
       if (authorCityEl) authorCityEl.textContent = authorCity || "";
       if (sidebarNameEl) sidebarNameEl.textContent = authorName || "مستخدم";
       if (sidebarCityEl) sidebarCityEl.textContent = authorCity || "";
-      await loadPostComments(post);
+      await loadPostComments(post, details);
     } catch (err) {
       if (err.status === 401)
         showNotification("يجب تسجيل الدخول للاطلاع على التفاصيل", "error");
@@ -821,14 +988,21 @@ async function initReviewDetailPage() {
   // Like / Reaction button
   const likeBtn = document.getElementById("likeBtn");
   if (likeBtn && postId) {
+    let activeReactionId = null;
     likeBtn.addEventListener("click", async () => {
       const isActive = likeBtn.classList.contains("active");
       const countEl = likeBtn.querySelector(".count");
       try {
         if (isActive) {
-          await API.deleteReaction(postId);
+          await API.deleteReaction(activeReactionId || postId);
+          activeReactionId = null;
         } else {
-          await API.saveReaction(postId, "like");
+          const reaction = await API.saveReaction(postId, "like");
+          activeReactionId =
+            getEntityId(reaction) ||
+            getEntityId(reaction?.reaction) ||
+            getEntityId(reaction?.data) ||
+            activeReactionId;
         }
         likeBtn.classList.toggle("active");
         if (countEl)
@@ -986,29 +1160,32 @@ async function initMyPostsPage() {
 
     postsListEl.innerHTML = posts
       .map(
-        (post) => `
-      <div class="post-card" id="post-${escHtml(String(post.id || post._id || ""))}">
+        (post) => {
+          const postId = getEntityId(post);
+          return `
+      <div class="post-card" id="post-${escHtml(String(postId || ""))}">
         <div class="post-card-body">
           <div class="post-card-header">
             <div class="post-badges">
-              <span class="badge badge-blue">${escHtml(post.category || "")}</span>
+              <span class="badge badge-blue">${escHtml(getCategoryName(post))}</span>
             </div>
             <div class="post-actions">
-              <button class="edit-btn" data-post-id="${escHtml(String(post.id || post._id || ""))}">
+              <button class="edit-btn" data-post-id="${escHtml(String(postId || ""))}" ${postId ? "" : "disabled"}>
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
-              <button class="delete" data-post-id="${escHtml(String(post.id || post._id || ""))}">
+              <button class="delete" data-post-id="${escHtml(String(postId || ""))}" ${postId ? "" : "disabled"}>
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               </button>
             </div>
           </div>
-          <a href="post.html?id=${escHtml(String(post.id || post._id || ""))}" style="display:block;margin-bottom:0.5rem;">
+          <a href="${postId ? `post.html?id=${escHtml(encodeURIComponent(String(postId)))}` : "#"}" style="display:block;margin-bottom:0.5rem;">
             <h3 style="font-size:1.125rem;font-weight:700;color:var(--gray-900);">${escHtml(post.title || "")}</h3>
           </a>
           <p style="color:var(--gray-600);font-size:0.875rem;line-height:1.6;margin-bottom:1rem;" class="line-clamp-3">${escHtml(post.description || "")}</p>
         </div>
       </div>
-    `,
+    `;
+        },
       )
       .join("");
 
@@ -1078,6 +1255,201 @@ async function initMyPostsPage() {
       postsListEl.innerHTML =
         '<p style="text-align:center;color:var(--danger);padding:2rem;">تعذّر تحميل المنشورات. الرجاء المحاولة لاحقاً.</p>';
     }
+  }
+}
+
+// ===== Feed Page =====
+async function initFeedPage() {
+  const feedListEl = document.getElementById("feedPostsList");
+  if (!feedListEl) return;
+
+  const searchInput = document.getElementById("feedSearch");
+  const categoriesEl = document.getElementById("feedCategories");
+  const feedCountEl = document.getElementById("feedPostsCount");
+  const userNameEls = document.querySelectorAll("[data-feed-user-name]");
+  let allPosts = [];
+
+  const renderCategories = (categories) => {
+    if (!categoriesEl) return;
+    const labels = ["الكل", ...new Set(categories.filter(Boolean))];
+    categoriesEl.innerHTML = labels
+      .map(
+        (label, index) =>
+          `<button type="button" class="feed-category-chip${index === 0 ? " active" : ""}" data-feed-category="${escHtml(label)}">${escHtml(label)}</button>`,
+      )
+      .join("");
+
+    categoriesEl.querySelectorAll("[data-feed-category]").forEach((button) => {
+      button.addEventListener("click", () => {
+        categoriesEl
+          .querySelectorAll("[data-feed-category]")
+          .forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        applyFeedFilters();
+      });
+    });
+  };
+
+  const renderPosts = (posts) => {
+    if (feedCountEl) feedCountEl.textContent = String(posts.length);
+
+    if (!posts.length) {
+      feedListEl.innerHTML = `
+        <div class="feed-empty-state">
+          <h3>لا توجد منشورات بعد</h3>
+          <p>ابدأ بمشاركة تجربة أو رأي ليستفيد باقي المستخدمين.</p>
+          <a href="add-post.html" class="btn btn-primary btn-sm">إضافة منشور</a>
+        </div>
+      `;
+      return;
+    }
+
+    feedListEl.innerHTML = posts
+      .map((post) => {
+        const postId = getEntityId(post);
+        const postHref = postId ? `post.html?id=${encodeURIComponent(String(postId))}` : "#";
+        const author = getPostAuthor(post);
+        const category = getCategoryName(post);
+        const title = firstDefined(post.title, post.name, "منشور بدون عنوان");
+        const description = truncateText(post.description || post.content || post.body || "", 320);
+        const commentsCount = getPostCount(post, "commentsCount", "commentCount", "comments");
+        const reactionsCount = getPostCount(post, "reactionsCount", "reactionCount", "reactions", "likesCount", "likes");
+        const rating = firstDefined(post.averageRating, post.avgRating, post.rating, "");
+        const searchable = [title, description, category, author.name, author.city].join(" ");
+        const avatarLetter = String(author.name || "م").trim().charAt(0) || "م";
+        const date = getPostDate(post);
+
+        return `
+          <article class="feed-post-card" data-feed-post data-category="${escHtml(category)}" data-search="${escHtml(searchable.toLowerCase())}">
+            <header class="feed-post-header">
+              <div class="feed-avatar">${escHtml(avatarLetter)}</div>
+              <div class="feed-post-author">
+                <strong>${escHtml(author.name)}</strong>
+                <span>${escHtml([author.city, date].filter(Boolean).join(" · "))}</span>
+              </div>
+              <span class="feed-post-category">${escHtml(category)}</span>
+            </header>
+
+            <a href="${escHtml(postHref)}" class="feed-post-content">
+              <h2>${escHtml(title)}</h2>
+              ${description ? `<p>${escHtml(description)}</p>` : ""}
+            </a>
+
+            <div class="feed-post-meta">
+              <span>${reactionsCount} إعجاب</span>
+              <span>${commentsCount} تعليق</span>
+              ${rating !== "" ? `<span>تقييم ${escHtml(String(rating))}</span>` : ""}
+            </div>
+
+            <div class="feed-post-actions">
+              <button type="button" data-feed-like="${escHtml(String(postId || ""))}" ${postId ? "" : "disabled"}>
+                ${Icons.heart}
+                <span>إعجاب</span>
+              </button>
+              <a href="${escHtml(postHref)}">
+                ${Icons.send}
+                <span>تعليق</span>
+              </a>
+              <button type="button" data-feed-report="${escHtml(String(postId || ""))}" ${postId ? "" : "disabled"}>
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                <span>إبلاغ</span>
+              </button>
+            </div>
+          </article>
+        `;
+      })
+      .join("");
+
+    feedListEl.querySelectorAll("[data-feed-like]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const postId = button.dataset.feedLike;
+        if (!postId) return;
+        setButtonLoading(button, true);
+        try {
+          await API.saveReaction(postId, "like");
+          button.classList.add("active");
+          showNotification("تم تسجيل الإعجاب", "success");
+        } catch (err) {
+          showNotification(parseApiError(err), "error");
+        } finally {
+          setButtonLoading(button, false);
+        }
+      });
+    });
+
+    feedListEl.querySelectorAll("[data-feed-report]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const postId = button.dataset.feedReport;
+        if (!postId) return;
+        const reason = prompt("اكتب سبب الإبلاغ عن هذا المنشور:");
+        if (!reason) return;
+        if (reason.trim().length < 8) {
+          showNotification("سبب الإبلاغ يجب أن يكون 8 أحرف على الأقل", "error");
+          return;
+        }
+        setButtonLoading(button, true);
+        try {
+          await API.saveReport(postId, reason.trim());
+          showNotification("تم إرسال الإبلاغ للمراجعة", "success");
+        } catch (err) {
+          showNotification(parseApiError(err), "error");
+        } finally {
+          setButtonLoading(button, false);
+        }
+      });
+    });
+  };
+
+  const applyFeedFilters = () => {
+    const activeCategory =
+      categoriesEl?.querySelector("[data-feed-category].active")?.dataset.feedCategory || "الكل";
+    const term = (searchInput?.value || "").trim().toLowerCase();
+    let visibleCount = 0;
+
+    feedListEl.querySelectorAll("[data-feed-post]").forEach((card) => {
+      const category = card.dataset.category || "";
+      const searchable = card.dataset.search || "";
+      const matchesCategory = activeCategory === "الكل" || category === activeCategory;
+      const matchesSearch = !term || searchable.includes(term);
+      const isVisible = matchesCategory && matchesSearch;
+      card.style.display = isVisible ? "" : "none";
+      if (isVisible) visibleCount += 1;
+    });
+
+    if (feedCountEl) feedCountEl.textContent = String(visibleCount);
+  };
+
+  feedListEl.innerHTML =
+    '<div class="feed-loading">جاري تحميل المنشورات...</div>';
+
+  try {
+    const [postsRaw, categoriesRaw, profile] = await Promise.all([
+      API.getPosts({ limit: 50 }),
+      API.getCategories().catch(() => []),
+      API.getProfile().catch(() => getStoredUser()),
+    ]);
+
+    if (profile) {
+      setStoredUser(profile);
+      updateNavbarUser(profile);
+      userNameEls.forEach((el) => {
+        el.textContent = profile.full_name || "المستخدم";
+      });
+    }
+
+    allPosts = unwrapApiArray(postsRaw, ["posts"]);
+    const postCategories = allPosts.map((post) => getCategoryName(post));
+    const apiCategories = unwrapApiArray(categoriesRaw, ["categories"]).map((category) =>
+      firstDefined(category?.name, category?.title, category?.category, category),
+    );
+
+    renderCategories([...apiCategories, ...postCategories]);
+    renderPosts(allPosts);
+    searchInput?.addEventListener("input", applyFeedFilters);
+  } catch (err) {
+    feedListEl.innerHTML =
+      '<div class="feed-empty-state error"><h3>تعذر تحميل المنشورات</h3><p>تحقق من الاتصال أو حاول لاحقا.</p></div>';
+    showNotification(parseApiError(err), "error");
   }
 }
 
@@ -1233,9 +1605,7 @@ async function initDashboardPage() {
   ]);
 
   const count = (res) =>
-    res.status === "fulfilled" && Array.isArray(res.value)
-      ? res.value.length
-      : null;
+    res.status === "fulfilled" ? unwrapApiArray(res.value).length : null;
   const fmt = (n, limit) =>
     n == null ? null : n === limit ? n + "+" : String(n);
 
@@ -1265,19 +1635,20 @@ async function initDashboardUsersPage() {
     tbody.innerHTML =
       '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-400);">جاري التحميل...</td></tr>';
     try {
-      const users = await API.getUsers();
+      const usersRaw = await API.getUsers();
+      const users = unwrapApiArray(usersRaw, ["users"]);
       const countEl = document.getElementById("usersCount");
-      if (countEl)
-        countEl.textContent = Array.isArray(users) ? users.length : 0;
+      if (countEl) countEl.textContent = users.length;
 
-      if (!Array.isArray(users) || users.length === 0) {
+      if (users.length === 0) {
         tbody.innerHTML =
           '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--gray-400);">لا يوجد مستخدمون</td></tr>';
         return;
       }
       tbody.innerHTML = users
-        .map(
-          (u) => `
+        .map((u) => {
+          const userId = firstDefined(u.id, u._id, u.user_id, u.userId);
+          return `
         <tr>
           <td>
             <div style="display:flex;align-items:center;gap:0.75rem;">
@@ -1295,7 +1666,7 @@ async function initDashboardUsersPage() {
           <td>
             <div style="display:flex;gap:0.25rem;">
               <button class="edit-user-btn" title="تعديل"
-                data-id="${escHtml(String(u.id || ""))}"
+                data-id="${escHtml(String(userId || ""))}"
                 data-name="${escHtml(u.full_name || "")}"
                 data-email="${escHtml(u.email || "")}"
                 data-phone="${escHtml(u.phone || "")}"
@@ -1308,19 +1679,23 @@ async function initDashboardUsersPage() {
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
               <button class="delete-user-btn" title="حذف"
-                data-id="${escHtml(String(u.id || ""))}"
+                data-id="${escHtml(String(userId || ""))}"
                 data-name="${escHtml(u.full_name || "")}"
                 style="padding:0.5rem;color:var(--danger);border-radius:var(--radius);background:#fee2e2;">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               </button>
             </div>
           </td>
-        </tr>`,
-        )
+        </tr>`;
+        })
         .join("");
 
       tbody.querySelectorAll(".edit-user-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
+          if (!btn.dataset.id) {
+            showNotification("لا يمكن تعديل مستخدم بدون معرف صالح", "error");
+            return;
+          }
           editingId = btn.dataset.id;
           if (modalTitle) modalTitle.textContent = "تعديل المستخدم";
           document.getElementById("uName").value = btn.dataset.name;
@@ -1338,6 +1713,10 @@ async function initDashboardUsersPage() {
 
       tbody.querySelectorAll(".delete-user-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
+          if (!btn.dataset.id) {
+            showNotification("لا يمكن حذف مستخدم بدون معرف صالح", "error");
+            return;
+          }
           if (!confirm(`هل أنت متأكد من حذف المستخدم "${btn.dataset.name}"؟`))
             return;
           try {
@@ -1429,19 +1808,20 @@ async function initDashboardReportsPage() {
     tbody.innerHTML =
       '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-400);">جاري التحميل...</td></tr>';
     try {
-      const reports = await API.getReports();
+      const reportsRaw = await API.getReports();
+      const reports = unwrapApiArray(reportsRaw, ["reports"]);
       const countEl = document.getElementById("reportsCount");
-      if (countEl)
-        countEl.textContent = Array.isArray(reports) ? reports.length : 0;
+      if (countEl) countEl.textContent = reports.length;
 
-      if (!Array.isArray(reports) || reports.length === 0) {
+      if (reports.length === 0) {
         tbody.innerHTML =
           '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--gray-400);">لا توجد إبلاغات</td></tr>';
         return;
       }
       tbody.innerHTML = reports
         .map((r) => {
-          const postId = r.post?.id || r.postId || "";
+          const postId = getEntityId(r.post) || firstDefined(r.postId, r.post_id);
+          const reportId = firstDefined(r.id, r._id, r.report_id, r.reportId);
           return `
         <tr>
           <td>
@@ -1459,7 +1839,7 @@ async function initDashboardReportsPage() {
                 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>عرض</a>`
                   : ""
               }
-              <button class="delete-report-btn" data-id="${escHtml(String(r.id || ""))}"
+              <button class="delete-report-btn" data-id="${escHtml(String(reportId || ""))}" ${reportId ? "" : "disabled"}
                 style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.375rem 0.625rem;background:#fee2e2;color:var(--danger);border-radius:var(--radius-lg);font-size:0.8rem;border:none;cursor:pointer;">
                 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>حذف</button>
             </div>
@@ -1470,6 +1850,10 @@ async function initDashboardReportsPage() {
 
       tbody.querySelectorAll(".delete-report-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
+          if (!btn.dataset.id) {
+            showNotification("لا يمكن حذف إبلاغ بدون معرف صالح", "error");
+            return;
+          }
           if (!confirm("هل أنت متأكد من حذف هذا الإبلاغ؟")) return;
           try {
             await API.deleteReport(btn.dataset.id);
@@ -1516,53 +1900,60 @@ async function initDashboardCategoriesPage() {
     tbody.innerHTML =
       '<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--gray-400);">جاري التحميل...</td></tr>';
     try {
-      const cats = await API.getCategories();
+      const catsRaw = await API.getCategories();
+      const cats = unwrapApiArray(catsRaw, ["categories"]);
       const countEl = document.getElementById("categoriesCount");
-      if (countEl) countEl.textContent = Array.isArray(cats) ? cats.length : 0;
+      if (countEl) countEl.textContent = cats.length;
 
-      if (!Array.isArray(cats) || cats.length === 0) {
+      if (cats.length === 0) {
         tbody.innerHTML =
           '<tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--gray-400);">لا توجد تصنيفات</td></tr>';
         return;
       }
       tbody.innerHTML = cats
-        .map(
-          (c) => `
+        .map((c) => {
+          const categoryId = firstDefined(c.id, c._id, c.category_id, c.categoryId);
+          const categoryName = firstDefined(c.name, c.title, c.category, "");
+          return `
         <tr>
           <td>
             <div style="display:flex;align-items:center;gap:0.75rem;">
-              <div style="width:40px;height:40px;background:var(--primary-light);color:var(--primary);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;flex-shrink:0;">${escHtml((c.name || "?")[0])}</div>
+              <div style="width:40px;height:40px;background:var(--primary-light);color:var(--primary);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;flex-shrink:0;">${escHtml((categoryName || "?")[0])}</div>
               <div>
-                <div style="font-weight:500;color:var(--gray-900);">${escHtml(c.name || "")}</div>
+                <div style="font-weight:500;color:var(--gray-900);">${escHtml(categoryName)}</div>
                 ${c.description ? `<div style="font-size:0.75rem;color:var(--gray-500);">${escHtml(c.description)}</div>` : ""}
               </div>
             </div>
           </td>
-          <td style="font-weight:500;">${c._count?.posts ?? "-"}</td>
+          <td style="font-weight:500;">${firstDefined(c._count?.posts, c.postsCount, c.postCount, "-")}</td>
           <td style="font-size:0.875rem;color:var(--gray-500);">${c.createdAt ? new Date(c.createdAt).toLocaleDateString("ar-EG") : "-"}</td>
           <td>
             <div style="display:flex;gap:0.25rem;">
               <button class="edit-cat-btn" title="تعديل"
-                data-id="${escHtml(String(c.id || ""))}"
-                data-name="${escHtml(c.name || "")}"
+                data-id="${escHtml(String(categoryId || ""))}"
+                data-name="${escHtml(categoryName)}"
                 data-desc="${escHtml(c.description || "")}"
                 style="padding:0.5rem;color:var(--primary);border-radius:var(--radius);background:var(--primary-light);">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
               <button class="delete-cat-btn" title="حذف"
-                data-id="${escHtml(String(c.id || ""))}"
-                data-name="${escHtml(c.name || "")}"
+                data-id="${escHtml(String(categoryId || ""))}"
+                data-name="${escHtml(categoryName)}"
                 style="padding:0.5rem;color:var(--danger);border-radius:var(--radius);background:#fee2e2;">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               </button>
             </div>
           </td>
-        </tr>`,
-        )
+        </tr>`;
+        })
         .join("");
 
       tbody.querySelectorAll(".edit-cat-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
+          if (!btn.dataset.id) {
+            showNotification("لا يمكن تعديل تصنيف بدون معرف صالح", "error");
+            return;
+          }
           editingId = btn.dataset.id;
           if (modalTitle) modalTitle.textContent = "تعديل التصنيف";
           document.getElementById("catName").value = btn.dataset.name;
@@ -1573,6 +1964,10 @@ async function initDashboardCategoriesPage() {
 
       tbody.querySelectorAll(".delete-cat-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
+          if (!btn.dataset.id) {
+            showNotification("لا يمكن حذف تصنيف بدون معرف صالح", "error");
+            return;
+          }
           if (!confirm(`هل أنت متأكد من حذف التصنيف "${btn.dataset.name}"؟`))
             return;
           try {
@@ -2045,6 +2440,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initProfileEdit();
   initAddReviewPage();
   initReviewDetailPage();
+  initFeedPage();
   initMyPostsPage();
   initLikeToggle();
   initIndexPage();

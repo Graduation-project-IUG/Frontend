@@ -1,4 +1,10 @@
 document.addEventListener("DOMContentLoaded", async () => {
+  if (
+    window.MultaqaAccess?.ensurePageAccess &&
+    !(await window.MultaqaAccess.ensurePageAccess())
+  ) {
+    return;
+  }
   await MultaqaAPI.loadCurrentUser();
   const form = document.getElementById("add-post-form");
   const categorySelect = document.getElementById("categorySelect");
@@ -7,7 +13,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     const categories = await MultaqaAPI.apiFetch("/categories");
     const list = Array.isArray(categories)
       ? categories
-      : categories?.categories || [];
+      : Array.isArray(categories?.categories)
+        ? categories.categories
+        : Array.isArray(categories?.data)
+          ? categories.data
+          : Array.isArray(categories?.data?.categories)
+            ? categories.data.categories
+            : [];
     if (list.length) {
       categorySelect.innerHTML =
         '<option value="">اختر التصنيف</option>' +
@@ -40,7 +52,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         },
       });
       MultaqaAPI.notify("تم نشر المنشور بنجاح");
-      window.location.href = "/pages/my-posts.html";
+      window.location.href = "/pages/feed.html";
     } catch (error) {
       MultaqaAPI.notify(error.message || "تعذر نشر المنشور", "error");
     } finally {

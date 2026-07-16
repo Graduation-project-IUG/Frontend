@@ -1,4 +1,10 @@
 document.addEventListener("DOMContentLoaded", async () => {
+  if (
+    window.MultaqaAccess?.ensurePageAccess &&
+    !(await window.MultaqaAccess.ensurePageAccess())
+  ) {
+    return;
+  }
   const id = MultaqaAPI.getParam("id");
   const form = document.getElementById("edit-post-form");
   const categorySelect = document.getElementById("editPostCategory");
@@ -16,13 +22,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     ]);
     const categories = Array.isArray(categoriesData)
       ? categoriesData
-      : categoriesData?.categories || [];
+      : Array.isArray(categoriesData?.categories)
+        ? categoriesData.categories
+        : Array.isArray(categoriesData?.data)
+          ? categoriesData.data
+          : Array.isArray(categoriesData?.data?.categories)
+            ? categoriesData.data.categories
+            : [];
 
     categorySelect.innerHTML =
       '<option value="">اختر التصنيف</option>' +
       categories
         .map((category) => {
-          const categoryId = category.id ?? category.category_id;
+          const categoryId =
+            category.id ?? category._id ?? category.category_id ?? category.categoryId;
           const categoryName = category.name || category.title || "تصنيف";
           return `<option value="${MultaqaAPI.escapeHTML(categoryId)}">${MultaqaAPI.escapeHTML(categoryName)}</option>`;
         })

@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data?.csrfToken) {
         sessionStorage.setItem(`csrfToken:${MultaqaAPI.API_BASE}`, data.csrfToken);
       }
-      window.location.href = "/pages/dashboard.html";
+      window.location.href = "/pages/feed.html";
     } catch (error) {
       MultaqaAPI.notify(error.message || "تعذر تسجيل الدخول", "error");
     } finally {

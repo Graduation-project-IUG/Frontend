@@ -27,6 +27,11 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       });
       MultaqaAPI.notify("تم إنشاء الحساب بنجاح. يمكنك تسجيل الدخول الآن.");
+      const profile = await MultaqaAPI.apiFetch("/user/profile").catch(() => null);
+      if (profile) {
+        window.location.href = "/pages/feed.html";
+        return;
+      }
       window.location.href = "/pages/login.html";
     } catch (error) {
       MultaqaAPI.notify(error.message || "تعذر إنشاء الحساب", "error");

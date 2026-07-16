@@ -1895,6 +1895,7 @@ async function initDashboardCategoriesPage() {
   const modalTitle = document.getElementById("categoryModalTitle");
   const modalClose = document.getElementById("categoryModalClose");
   let editingId = null;
+  let categorySaving = false;
 
   async function loadCategories() {
     tbody.innerHTML =
@@ -2006,11 +2007,14 @@ async function initDashboardCategoriesPage() {
   if (modalForm) {
     modalForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (categorySaving) return;
+      categorySaving = true;
       const name = document.getElementById("catName").value.trim();
       const description =
         document.getElementById("catDesc").value.trim() || undefined;
       if (!name) {
         showNotification("اسم التصنيف مطلوب", "error");
+        categorySaving = false;
         return;
       }
 
@@ -2029,9 +2033,20 @@ async function initDashboardCategoriesPage() {
       } catch (err) {
         showNotification(parseApiError(err), "error");
       } finally {
+        categorySaving = false;
         setButtonLoading(submitBtn, false);
       }
     });
+
+    const modalSubmitBtn = modalForm.querySelector('[type="submit"]');
+    if (modalSubmitBtn) {
+      modalSubmitBtn.addEventListener("click", (event) => {
+        event.preventDefault();
+        modalForm.dispatchEvent(
+          new Event("submit", { bubbles: true, cancelable: true }),
+        );
+      });
+    }
   }
 
   const searchInput = document.getElementById("categoriesSearch");

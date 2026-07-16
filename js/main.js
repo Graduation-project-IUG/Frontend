@@ -200,6 +200,9 @@ const API = {
   deleteCategory: (id) => apiFetch(`/category/${id}`, { method: "DELETE" }),
 };
 
+const CATEGORY_NAME_MAX_LENGTH = 20;
+const CATEGORY_DESCRIPTION_MAX_LENGTH = 500;
+
 // ===== Auth State Helpers =====
 function getStoredUser() {
   try {
@@ -2014,6 +2017,16 @@ async function initDashboardCategoriesPage() {
         document.getElementById("catDesc").value.trim() || undefined;
       if (!name) {
         showNotification("اسم التصنيف مطلوب", "error");
+        categorySaving = false;
+        return;
+      }
+      if (name.length > CATEGORY_NAME_MAX_LENGTH) {
+        showNotification(`اسم التصنيف يجب ألا يتجاوز ${CATEGORY_NAME_MAX_LENGTH} حرفًا`, "error");
+        categorySaving = false;
+        return;
+      }
+      if (description && description.length > CATEGORY_DESCRIPTION_MAX_LENGTH) {
+        showNotification(`وصف التصنيف يجب ألا يتجاوز ${CATEGORY_DESCRIPTION_MAX_LENGTH} حرفًا`, "error");
         categorySaving = false;
         return;
       }

@@ -32,9 +32,21 @@ document.addEventListener("DOMContentLoaded", async () => {
           return `<option value="${MultaqaAPI.escapeHTML(value)}">${MultaqaAPI.escapeHTML(name)}</option>`;
         })
           .join("");
+    } else {
+      throw new Error("لا توجد تصنيفات متاحة لإنشاء منشور");
     }
-  } catch (_) {
-    // Keep static fallback categories until /categories exists.
+  } catch (error) {
+    categorySelect.innerHTML =
+      '<option value="">تعذر تحميل التصنيفات لهذا الحساب</option>';
+    categorySelect.disabled = true;
+    const submitButton = form?.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+    MultaqaAPI.notify(
+      error?.status === 403
+        ? "لا يملك هذا الحساب صلاحية تحميل التصنيفات، لذلك لا يمكن إنشاء منشور حالياً."
+        : error.message || "تعذر تحميل التصنيفات",
+      "error",
+    );
   }
 
   form?.addEventListener("submit", async (event) => {

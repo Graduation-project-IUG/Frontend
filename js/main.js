@@ -585,6 +585,13 @@ function getPostCount(post, ...keys) {
   return 0;
 }
 
+async function getPostFeedItem(postId) {
+  const postsRaw = await API.getPosts({ page: 1, limit: 100 });
+  return unwrapApiArray(postsRaw, ["posts"]).find(
+    (post) => String(getEntityId(post)) === String(postId),
+  );
+}
+
 function truncateText(text, maxLength = 220) {
   const value = String(text || "").trim();
   return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
@@ -1025,10 +1032,11 @@ async function initReviewDetailPage() {
 
   if (postId) {
     try {
-      const [post, postsRaw, categoriesRaw] = await Promise.all([
+      const [post, postsRaw, categoriesRaw, myPostsRaw] = await Promise.all([
         API.getPost(postId),
         API.getPosts({ page: 1, limit: 100 }).catch(() => []),
         API.getCategories().catch(() => []),
+        API.getMyPosts({ page: 1, limit: 100 }).catch(() => []),
       ]);
       const feedPost = unwrapApiArray(postsRaw, ["posts"]).find(
         (item) => String(getEntityId(item)) === String(postId),
@@ -1052,10 +1060,9 @@ async function initReviewDetailPage() {
       if (descEl) descEl.textContent = firstDefined(mergedPost.description, mergedPost.content, mergedPost.body, "");
       if (badgeEl) badgeEl.textContent = getCategoryName(mergedPost);
       const storedUser = getStoredUser();
-      const ownsPost =
-        storedUser &&
-        String(firstDefined(storedUser.id, storedUser.userId, storedUser.user_id)) ===
-          String(firstDefined(post.userId, post.user_id));
+      const ownsPost = unwrapApiArray(myPostsRaw, ["posts"]).some(
+        (item) => String(getEntityId(item)) === String(postId),
+      );
       const postAuthor = ownsPost
         ? { name: storedUser.full_name || "مستخدم", city: storedUser.city || "" }
         : getPostAuthor(mergedPost);
@@ -1117,7 +1124,19 @@ async function initReviewDetailPage() {
         likeBtn.dataset.reacted = "true";
         likeBtn.classList.add("active");
         likeBtn.disabled = true;
-        if (countEl) countEl.textContent = String(Number(countEl.textContent) + 1);
+        const updatedPost = await getPostFeedItem(postId).catch(() => null);
+        if (countEl && updatedPost) {
+          countEl.textContent = String(
+            getPostCount(
+              updatedPost,
+              "reactionsCount",
+              "reactionCount",
+              "reactions",
+              "likesCount",
+              "likes",
+            ),
+          );
+        }
         showNotification("تم تسجيل الإعجاب", "success");
       } catch (err) {
         showNotification(
@@ -1136,18 +1155,13 @@ async function initReviewDetailPage() {
 
   const shareBtn = document.getElementById("shareBtn");
   shareBtn?.addEventListener("click", async () => {
-    const shareData = {
-      title: document.querySelector("[data-post-title]")?.textContent || document.title,
-      url: window.location.href,
-    };
+    const url = window.location.href;
     try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareData.url);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
         showNotification("تم نسخ رابط المنشور", "success");
       } else {
-        window.prompt("انسخ رابط المنشور:", shareData.url);
+        window.prompt("انسخ رابط المنشور:", url);
       }
     } catch (error) {
       if (error?.name !== "AbortError") {
@@ -1524,7 +1538,19 @@ async function initFeedPage() {
           const countEl = button
             .closest("[data-feed-post]")
             ?.querySelector("[data-feed-reactions-count]");
-          if (countEl) countEl.textContent = String(Number(countEl.textContent) + 1);
+          const updatedPost = await getPostFeedItem(postId).catch(() => null);
+          if (countEl && updatedPost) {
+            countEl.textContent = String(
+              getPostCount(
+                updatedPost,
+                "reactionsCount",
+                "reactionCount",
+                "reactions",
+                "likesCount",
+                "likes",
+              ),
+            );
+          }
           showNotification("تم تسجيل الإعجاب", "success");
         } catch (err) {
           showNotification(parseApiError(err), "error");
@@ -2579,13 +2605,15 @@ function initProfileEdit() {
           input.setAttribute("disabled", "true");
           input.classList.add("bg-gray");
         });
-        editBtn.innerHTML = "تعديل البيانات";
         editBtn.dataset.editing = "false";
         showNotification("تم حفظ البيانات بنجاح!", "success");
       } catch (err) {
         showNotification(parseApiError(err), "error");
       } finally {
         setButtonLoading(editBtn, false);
+        if (editBtn.dataset.editing === "false") {
+          editBtn.innerHTML = "تعديل البيانات";
+        }
       }
     }
   });

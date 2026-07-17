@@ -29,6 +29,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           : Array.isArray(categoriesData?.data?.categories)
             ? categoriesData.data.categories
             : [];
+    if (!categories.length) {
+      throw new Error("لا توجد تصنيفات متاحة لتعديل المنشور");
+    }
 
     categorySelect.innerHTML =
       '<option value="">اختر التصنيف</option>' +
@@ -59,8 +62,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (matchingOption) categorySelect.value = matchingOption.value;
     }
   } catch (error) {
+    const message =
+      error?.status === 403
+        ? "لا يملك هذا الحساب صلاحية تحميل التصنيفات أو تعديل هذا المنشور."
+        : error.message || "تعذر تحميل المنشور أو التصنيفات.";
     document.getElementById("editPostStatus").innerHTML =
-      `<div class="empty-state">${MultaqaAPI.escapeHTML(error.message || "تعذر تحميل المنشور أو التصنيفات.")}</div>`;
+      `<div class="empty-state">${MultaqaAPI.escapeHTML(message)}</div>`;
     form.style.display = "none";
   }
 

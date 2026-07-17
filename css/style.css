@@ -943,6 +943,11 @@ textarea.form-input {
   .how-grid {
     grid-template-columns: 1fr 1fr;
   }
+
+  .how-grid.how-grid-single {
+    grid-template-columns: minmax(0, 720px);
+    justify-content: center;
+  }
 }
 
 .how-steps {

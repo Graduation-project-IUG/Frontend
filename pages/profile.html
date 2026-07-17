@@ -203,8 +203,8 @@
             <div class="profile-header-body">
               <div class="profile-avatar-wrap">
                 <div class="profile-avatar">
-                  <img src="../images/avatar-saeed.jpg" alt="سعيد حسن" />
-                  <button class="edit-avatar">
+                  <img src="../images/avatar-saeed.jpg" alt="صورة المستخدم" />
+                  <button class="edit-avatar" hidden>
                     <svg
                       width="14"
                       height="14"
@@ -231,7 +231,7 @@
                     "
                   >
                     <div>
-                      <h1>سعيد حسن</h1>
+                      <h1>المستخدم</h1>
                       <div class="location">
                         <svg
                           width="16"
@@ -246,7 +246,7 @@
                           />
                           <circle cx="12" cy="10" r="3" />
                         </svg>
-                        غزة
+                        —
                       </div>
                     </div>
                     <button class="btn btn-primary" id="editProfileBtn">
@@ -257,15 +257,15 @@
               </div>
               <div class="profile-stats-grid">
                 <div class="profile-stat-card">
-                  <div class="value">غزة</div>
+                  <div class="value">—</div>
                   <div class="label">المدينة</div>
                 </div>
                 <div class="profile-stat-card">
-                  <div class="value">125</div>
+                  <div class="value">0</div>
                   <div class="label">عدد المراجعات</div>
                 </div>
-                <div class="profile-stat-card">
-                  <div class="value">22,055</div>
+                <div class="profile-stat-card" hidden>
+                  <div class="value">0</div>
                   <div class="label">التعليقات</div>
                 </div>
               </div>
@@ -301,7 +301,7 @@
                       type="text"
                       id="profileName"
                       class="form-input bg-gray"
-                      value="سعيد حسن"
+                      value=""
                       disabled
                     />
                   </div>
@@ -311,7 +311,7 @@
                       type="email"
                       id="profileEmail"
                       class="form-input bg-gray"
-                      value="saeed.hassan@example.com"
+                      value=""
                       disabled
                     />
                   </div>
@@ -321,7 +321,7 @@
                       type="tel"
                       id="profilePhone"
                       class="form-input bg-gray"
-                      value="059 123 4567"
+                      value=""
                       disabled
                     />
                   </div>

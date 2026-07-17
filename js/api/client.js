@@ -169,22 +169,17 @@
   async function logout() {
     try {
       await apiFetch("/auth/logout", { method: "POST" });
+    } catch (error) {
+      if (error?.status !== 401) {
+        console.warn("Server logout failed; clearing the local session.", error);
+      }
+    } finally {
       sessionStorage.removeItem(CSRF_STORAGE_KEY);
       sessionStorage.removeItem("csrfToken");
       sessionStorage.removeItem("currentUser");
       window.location.href = "/pages/login.html";
-    } catch (error) {
-      notify(error.message || "تعذر تسجيل الخروج. حاول مرة أخرى.", "error");
     }
   }
-
-  document.addEventListener("click", (event) => {
-    const logoutEl = event.target.closest("[data-logout]");
-    if (logoutEl) {
-      event.preventDefault();
-      logout();
-    }
-  });
 
   window.MultaqaAPI = {
     API_BASE,

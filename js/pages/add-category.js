@@ -28,6 +28,9 @@ async function initAddCategoryPage() {
       if (!body.name) {
         throw new Error("اسم التصنيف مطلوب");
       }
+      if (body.name.length < 3) {
+        throw new Error("اسم التصنيف يجب أن يحتوي على 3 أحرف على الأقل");
+      }
       if (body.name.length > CATEGORY_NAME_MAX_LENGTH) {
         throw new Error(`اسم التصنيف يجب ألا يتجاوز ${CATEGORY_NAME_MAX_LENGTH} حرفًا`);
       }
@@ -47,10 +50,6 @@ async function initAddCategoryPage() {
   };
 
   form.addEventListener("submit", handleSubmit);
-  form.querySelector('button[type="submit"]')?.addEventListener("click", (event) => {
-    event.preventDefault();
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-  });
 }
 
 if (document.readyState === "loading") {

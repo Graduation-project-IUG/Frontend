@@ -8,6 +8,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 :root {
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
@@ -2024,15 +2028,17 @@ textarea.form-input {
 }
 
 .review-detail-badge {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
   padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(4px);
+  background: var(--primary-light);
+  color: var(--primary-dark);
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+.review-detail-badge-static {
+  display: inline-flex;
+  margin-bottom: 0.75rem;
 }
 
 .review-detail-author {
@@ -2047,6 +2053,18 @@ textarea.form-input {
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
+}
+
+.review-detail-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  font-weight: 700;
 }
 
 .review-detail-author .name {

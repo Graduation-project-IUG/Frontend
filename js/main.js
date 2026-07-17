@@ -141,7 +141,9 @@ const API = {
   saveReaction: (post_id, reaction) =>
     apiFetch(`/reaction/${post_id}`, {
       method: "POST",
-      body: JSON.stringify({ reaction }),
+      body: JSON.stringify({
+        reaction: Number.isFinite(Number(reaction)) ? Number(reaction) : 1,
+      }),
     }),
   getReaction: (id) => apiFetch(`/reaction/${id}`),
   updateReaction: (id, reaction) =>
@@ -262,6 +264,32 @@ function pageHref(pageName) {
   return isPagesDirectory() ? pageName : `pages/${pageName}`;
 }
 
+function getSafeReturnTo(value) {
+  if (!value) return null;
+  try {
+    const url = new URL(value, window.location.origin);
+    const pageName = url.pathname.split("/").filter(Boolean).pop() || "";
+    if (url.origin !== window.location.origin) return null;
+    if (!url.pathname.startsWith("/pages/")) return null;
+    if (AUTH_LANDING_PAGES.has(pageName)) return null;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+function loginHrefWithReturnTo(returnTo = null) {
+  const target =
+    getSafeReturnTo(returnTo) ||
+    getSafeReturnTo(
+      `${window.location.pathname}${window.location.search}${window.location.hash}`,
+    );
+  const loginHref = pageHref("login.html");
+  return target
+    ? `${loginHref}?returnTo=${encodeURIComponent(target)}`
+    : loginHref;
+}
+
 function isAdminOnlyPageName(pageName) {
   return pageName.includes("dashboard") || ADMIN_ONLY_PAGES.has(pageName);
 }
@@ -333,17 +361,33 @@ function updateGuestUI() {
   }
 
   document.querySelectorAll("a[href]").forEach((link) => {
-    const pageName = new URL(link.href, window.location.href).pathname
+    const targetUrl = new URL(link.href, window.location.href);
+    const pageName = targetUrl.pathname
       .split("/")
       .filter(Boolean)
       .pop();
     if (!pageName || GUEST_ALLOWED_PAGES.has(pageName)) return;
     if (isAdminOnlyPageName(pageName) || AUTH_ONLY_PAGES.has(pageName)) {
-      link.href = pageHref("login.html");
+      link.href = loginHrefWithReturnTo(
+        `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}`,
+      );
     } else {
       link.href = pageHref("index.html");
     }
   });
+}
+
+function renderAccessError() {
+  document.body.innerHTML = `
+    <main class="container" style="min-height:100vh;display:grid;place-items:center;padding-block:2rem;">
+      <section class="card" style="max-width:520px;width:100%;text-align:center;">
+        <div class="card-body">
+          <h1 style="font-size:1.35rem;margin-bottom:0.5rem;">تعذر التحقق من الجلسة</h1>
+          <p style="color:var(--gray-600);margin-bottom:1.25rem;">تحقق من اتصالك ثم أعد المحاولة.</p>
+          <button class="btn btn-primary" type="button" onclick="window.location.reload()">إعادة المحاولة</button>
+        </div>
+      </section>
+    </main>`;
 }
 
 let pageAccessPromise;
@@ -374,8 +418,18 @@ async function ensurePageAccess() {
       document.documentElement.classList.remove("auth-checking");
       return true;
     } catch (error) {
-      clearAuth();
       document.documentElement.classList.remove("auth-checking");
+
+      if (error?.status !== 401) {
+        if (isGuestAllowedPage()) {
+          updateGuestUI();
+          return true;
+        }
+        renderAccessError();
+        return false;
+      }
+
+      clearAuth();
 
       if (isGuestAllowedPage()) {
         updateGuestUI();
@@ -384,7 +438,7 @@ async function ensurePageAccess() {
 
       const destination =
         isAdminOnlyPage() || isAuthOnlyPage()
-          ? pageHref("login.html")
+          ? loginHrefWithReturnTo()
           : pageHref("index.html");
       window.location.replace(destination);
       return false;
@@ -498,7 +552,13 @@ function getCategoryName(post) {
   if (category && typeof category === "object") {
     return firstDefined(category.name, category.title, category.category, category.id, "غير مصنف");
   }
-  return firstDefined(category, post?.category_name, post?.categoryName, "غير مصنف");
+  return firstDefined(
+    category,
+    post?.category_name,
+    post?.categoryName,
+    post?.title ? post?.name : null,
+    "غير مصنف",
+  );
 }
 
 function getPostAuthor(post) {
@@ -564,7 +624,10 @@ function initLoginPage() {
       if (data.csrfToken) sessionStorage.setItem(CSRF_STORAGE_KEY, data.csrfToken);
       const profile = await API.getProfile();
       setStoredUser(profile);
-      window.location.href = "feed.html";
+      const returnTo = getSafeReturnTo(
+        new URLSearchParams(window.location.search).get("returnTo"),
+      );
+      window.location.href = returnTo || "feed.html";
     } catch (err) {
       showNotification(
         parseApiError(err) || "البريد الإلكتروني أو كلمة المرور غير صحيحة",
@@ -645,6 +708,8 @@ async function initProfilePage() {
     if (statCards[0] && profile.city) statCards[0].textContent = profile.city;
     const posts = unwrapApiArray(postsRaw, ["posts"]);
     if (statCards[1]) statCards[1].textContent = posts.length;
+    statCards[2]?.closest(".profile-stat-card")?.setAttribute("hidden", "");
+    document.querySelector(".edit-avatar")?.setAttribute("hidden", "");
 
     const locationEl = document.querySelector(".profile-info .location");
     if (locationEl && profile.city) {
@@ -892,18 +957,22 @@ async function initReviewDetailPage() {
     ];
     return candidates.find(Array.isArray) || [];
   };
-  const renderComments = (comments) => {
+  const renderComments = (comments, totalCount = comments.length) => {
     if (!commentsBody || !detailCommentForm) return;
     commentsBody
       .querySelectorAll(".comment-item, .comments-empty")
       .forEach((item) => item.remove());
     if (commentsHeading) {
-      commentsHeading.textContent = `التعليقات (${comments.length})`;
+      commentsHeading.textContent = `التعليقات (${totalCount})`;
     }
     if (!comments.length) {
       detailCommentForm.insertAdjacentHTML(
         "afterend",
-        '<p class="comments-empty" style="text-align:center;color:var(--gray-400);padding:1rem 0;">لا توجد تعليقات بعد.</p>',
+        `<p class="comments-empty" style="text-align:center;color:var(--gray-400);padding:1rem 0;">${
+          totalCount > 0
+            ? "لا توفر واجهة الخادم الحالية نصوص التعليقات لعرضها."
+            : "لا توجد تعليقات بعد."
+        }</p>`,
       );
       return;
     }
@@ -933,7 +1002,7 @@ async function initReviewDetailPage() {
         .join(""),
     );
   };
-  const loadPostComments = async (post, details) => {
+  const loadPostComments = async (post, details, totalCount = 0) => {
     let comments = extractComments(post);
     if (!comments.length && details) comments = extractComments(details);
     if (!comments.length) {
@@ -942,33 +1011,54 @@ async function initReviewDetailPage() {
         comments = extractComments(details);
       } catch {}
     }
-    renderComments(comments);
+    renderComments(comments, Math.max(totalCount, comments.length));
+  };
+
+  const renderAverageRating = (ratingValue) => {
+    const container = document.getElementById("reviewAverageRating");
+    if (!container) return;
+    const rating = Math.max(0, Math.min(5, Number(ratingValue) || 0));
+    const rounded = Math.round(rating);
+    container.setAttribute("aria-label", `متوسط التقييم ${rating.toFixed(1)} من 5`);
+    container.innerHTML = `${renderCommentStarsHtml(rounded)}<span style="font-size:0.875rem;color:var(--gray-500);margin-right:0.25rem;">(${rating.toFixed(1)})</span>`;
   };
 
   if (postId) {
     try {
-      let details = null;
-      let post = null;
-      try {
-        post = await API.getPost(postId);
-      } catch (postError) {
-        details = await apiFetch(`/post/${postId}/details`);
-        post =
-          details?.post ||
-          details?.data?.post ||
-          details?.data ||
-          details;
-        if (!post || typeof post !== "object") throw postError;
-      }
+      const [post, postsRaw, categoriesRaw] = await Promise.all([
+        API.getPost(postId),
+        API.getPosts({ page: 1, limit: 100 }).catch(() => []),
+        API.getCategories().catch(() => []),
+      ]);
+      const feedPost = unwrapApiArray(postsRaw, ["posts"]).find(
+        (item) => String(getEntityId(item)) === String(postId),
+      );
+      const category = unwrapApiArray(categoriesRaw, ["categories"]).find(
+        (item) =>
+          String(firstDefined(item?.id, item?._id, item?.category_id)) ===
+          String(firstDefined(post?.categoryId, post?.category_id)),
+      );
+      const mergedPost = {
+        ...post,
+        ...(feedPost || {}),
+        category: firstDefined(feedPost?.name, category?.name, post?.category),
+      };
       const titleEl = document.querySelector("[data-post-title]");
       const descEl = document.querySelector("[data-post-desc]");
       const badgeEl = document.querySelector(".review-detail-badge");
       const authorEl = document.getElementById("reviewAuthorName");
       const dateEl = document.getElementById("reviewAuthorDate");
-      if (titleEl) titleEl.textContent = firstDefined(post.title, post.name, "");
-      if (descEl) descEl.textContent = firstDefined(post.description, post.content, post.body, "");
-      if (badgeEl) badgeEl.textContent = getCategoryName(post);
-      const postAuthor = getPostAuthor(post);
+      if (titleEl) titleEl.textContent = firstDefined(mergedPost.title, "");
+      if (descEl) descEl.textContent = firstDefined(mergedPost.description, mergedPost.content, mergedPost.body, "");
+      if (badgeEl) badgeEl.textContent = getCategoryName(mergedPost);
+      const storedUser = getStoredUser();
+      const ownsPost =
+        storedUser &&
+        String(firstDefined(storedUser.id, storedUser.userId, storedUser.user_id)) ===
+          String(firstDefined(post.userId, post.user_id));
+      const postAuthor = ownsPost
+        ? { name: storedUser.full_name || "مستخدم", city: storedUser.city || "" }
+        : getPostAuthor(mergedPost);
       const authorName = postAuthor.name || "";
       const authorCity = postAuthor.city || "";
       if (authorEl) authorEl.textContent = authorName || "مستخدم";
@@ -979,7 +1069,35 @@ async function initReviewDetailPage() {
       if (authorCityEl) authorCityEl.textContent = authorCity || "";
       if (sidebarNameEl) sidebarNameEl.textContent = authorName || "مستخدم";
       if (sidebarCityEl) sidebarCityEl.textContent = authorCity || "";
-      await loadPostComments(post, details);
+      const authorAvatar = document.getElementById("reviewAuthorAvatar");
+      if (authorAvatar) authorAvatar.textContent = (authorName || "م").trim().charAt(0) || "م";
+      const commentsCount = getPostCount(
+        mergedPost,
+        "commentsCount",
+        "commentCount",
+        "comments",
+      );
+      const reactionsCount = getPostCount(
+        mergedPost,
+        "reactionsCount",
+        "reactionCount",
+        "reactions",
+        "likesCount",
+        "likes",
+      );
+      const likeCountEl = document.querySelector("#likeBtn .count");
+      const postCommentsCountEl = document.getElementById("postCommentsCount");
+      if (likeCountEl) likeCountEl.textContent = String(reactionsCount);
+      if (postCommentsCountEl) postCommentsCountEl.textContent = String(commentsCount);
+      renderAverageRating(
+        firstDefined(
+          mergedPost.averageRating,
+          mergedPost.avgRating,
+          mergedPost.rating,
+          0,
+        ),
+      );
+      await loadPostComments(mergedPost, null, commentsCount);
     } catch (err) {
       if (err.status === 401)
         showNotification("يجب تسجيل الدخول للاطلاع على التفاصيل", "error");
@@ -991,26 +1109,16 @@ async function initReviewDetailPage() {
   // Like / Reaction button
   const likeBtn = document.getElementById("likeBtn");
   if (likeBtn && postId) {
-    let activeReactionId = null;
     likeBtn.addEventListener("click", async () => {
-      const isActive = likeBtn.classList.contains("active");
+      if (likeBtn.dataset.reacted === "true") return;
       const countEl = likeBtn.querySelector(".count");
       try {
-        if (isActive) {
-          await API.deleteReaction(activeReactionId || postId);
-          activeReactionId = null;
-        } else {
-          const reaction = await API.saveReaction(postId, "like");
-          activeReactionId =
-            getEntityId(reaction) ||
-            getEntityId(reaction?.reaction) ||
-            getEntityId(reaction?.data) ||
-            activeReactionId;
-        }
-        likeBtn.classList.toggle("active");
-        if (countEl)
-          countEl.textContent =
-            parseInt(countEl.textContent) + (isActive ? -1 : 1);
+        await API.saveReaction(postId, 1);
+        likeBtn.dataset.reacted = "true";
+        likeBtn.classList.add("active");
+        likeBtn.disabled = true;
+        if (countEl) countEl.textContent = String(Number(countEl.textContent) + 1);
+        showNotification("تم تسجيل الإعجاب", "success");
       } catch (err) {
         showNotification(
           err.status === 401 ? "يجب تسجيل الدخول أولاً" : parseApiError(err),
@@ -1019,6 +1127,34 @@ async function initReviewDetailPage() {
       }
     });
   }
+
+  const commentsButton = document.getElementById("commentsButton");
+  commentsButton?.addEventListener("click", () => {
+    detailCommentForm?.closest(".card")?.scrollIntoView({ behavior: "smooth" });
+    document.getElementById("commentContent")?.focus({ preventScroll: true });
+  });
+
+  const shareBtn = document.getElementById("shareBtn");
+  shareBtn?.addEventListener("click", async () => {
+    const shareData = {
+      title: document.querySelector("[data-post-title]")?.textContent || document.title,
+      url: window.location.href,
+    };
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareData.url);
+        showNotification("تم نسخ رابط المنشور", "success");
+      } else {
+        window.prompt("انسخ رابط المنشور:", shareData.url);
+      }
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        showNotification("تعذر مشاركة رابط المنشور", "error");
+      }
+    }
+  });
 
   // Comment form
   const commentForm = document.getElementById("commentForm");
@@ -1068,6 +1204,10 @@ async function initReviewDetailPage() {
         );
       } else if (heading) {
         heading.textContent = "التعليقات (1)";
+      }
+      const actionCount = document.getElementById("postCommentsCount");
+      if (actionCount) {
+        actionCount.textContent = String(Number(actionCount.textContent) + 1);
       }
     };
     commentForm.querySelectorAll(".star-rating button").forEach((btn, i) => {
@@ -1173,10 +1313,10 @@ async function initMyPostsPage() {
               <span class="badge badge-blue">${escHtml(getCategoryName(post))}</span>
             </div>
             <div class="post-actions">
-              <button class="edit-btn" data-post-id="${escHtml(String(postId || ""))}" ${postId ? "" : "disabled"}>
+              <button class="edit-btn" data-post-id="${escHtml(String(postId || ""))}" aria-label="تعديل المنشور" title="تعديل المنشور" ${postId ? "" : "disabled"}>
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
-              <button class="delete" data-post-id="${escHtml(String(postId || ""))}" ${postId ? "" : "disabled"}>
+              <button class="delete" data-post-id="${escHtml(String(postId || ""))}" aria-label="حذف المنشور" title="حذف المنشور" ${postId ? "" : "disabled"}>
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               </button>
             </div>
@@ -1223,6 +1363,15 @@ async function initMyPostsPage() {
 
     const filterContainer = document.getElementById("filterTags");
     const searchInput = document.getElementById("myPostsSearch");
+    if (filterContainer) {
+      const categories = [...new Set(posts.map((post) => getCategoryName(post)))];
+      filterContainer.innerHTML = ["الكل", ...categories]
+        .map(
+          (category, index) =>
+            `<button type="button" class="filter-tag${index === 0 ? " active" : ""}">${escHtml(category)}</button>`,
+        )
+        .join("");
+    }
     const applyMyPostsFilters = () => {
       const activeFilter =
         filterContainer?.querySelector(".filter-tag.active")?.textContent.trim() ||
@@ -1339,8 +1488,8 @@ async function initFeedPage() {
             </a>
 
             <div class="feed-post-meta">
-              <span>${reactionsCount} إعجاب</span>
-              <span>${commentsCount} تعليق</span>
+              <span><span data-feed-reactions-count>${reactionsCount}</span> إعجاب</span>
+              <span><span data-feed-comments-count>${commentsCount}</span> تعليق</span>
               ${rating !== "" ? `<span>تقييم ${escHtml(String(rating))}</span>` : ""}
             </div>
 
@@ -1366,16 +1515,22 @@ async function initFeedPage() {
     feedListEl.querySelectorAll("[data-feed-like]").forEach((button) => {
       button.addEventListener("click", async () => {
         const postId = button.dataset.feedLike;
-        if (!postId) return;
+        if (!postId || button.dataset.reacted === "true") return;
         setButtonLoading(button, true);
         try {
-          await API.saveReaction(postId, "like");
+          await API.saveReaction(postId, 1);
+          button.dataset.reacted = "true";
           button.classList.add("active");
+          const countEl = button
+            .closest("[data-feed-post]")
+            ?.querySelector("[data-feed-reactions-count]");
+          if (countEl) countEl.textContent = String(Number(countEl.textContent) + 1);
           showNotification("تم تسجيل الإعجاب", "success");
         } catch (err) {
           showNotification(parseApiError(err), "error");
         } finally {
           setButtonLoading(button, false);
+          if (button.dataset.reacted === "true") button.disabled = true;
         }
       });
     });
@@ -1448,6 +1603,11 @@ async function initFeedPage() {
 
     renderCategories([...apiCategories, ...postCategories]);
     renderPosts(allPosts);
+    const initialSearch = new URLSearchParams(window.location.search).get("q");
+    if (searchInput && initialSearch) {
+      searchInput.value = initialSearch;
+      applyFeedFilters();
+    }
     searchInput?.addEventListener("input", applyFeedFilters);
   } catch (err) {
     feedListEl.innerHTML =
@@ -1521,11 +1681,10 @@ function initContactPage() {
       return;
     }
 
-    setButtonLoading(submitBtn, true);
-    await new Promise((r) => setTimeout(r, 600));
-    setButtonLoading(submitBtn, false);
-    showNotification("تم إرسال رسالتك بنجاح! سنرد عليك قريباً.", "success");
-    form.reset();
+    showNotification(
+      "خدمة إرسال الرسائل غير متاحة من الخادم حالياً. استخدم بيانات التواصل الظاهرة في الصفحة.",
+      "error",
+    );
   });
 }
 
@@ -1597,6 +1756,16 @@ async function initSettingsPage() {
 async function initDashboardPage() {
   const statsGrid = document.querySelector(".stats-grid");
   if (!statsGrid) return;
+  statsGrid
+    .querySelectorAll(".stat-card-badge, .stat-card .period")
+    .forEach((element) => {
+      element.hidden = true;
+    });
+  Array.from(statsGrid.parentElement?.children || [])
+    .slice(1)
+    .forEach((element) => {
+      element.hidden = true;
+    });
   const statH3s = statsGrid.querySelectorAll(".stat-card h3");
   if (!statH3s.length) return;
 
@@ -1668,7 +1837,7 @@ async function initDashboardUsersPage() {
           <td><span class="status-badge ${u.status === "Active" ? "active" : "blocked"}">${u.status === "Active" ? "مفعل" : "متوقف"}</span></td>
           <td>
             <div style="display:flex;gap:0.25rem;">
-              <button class="edit-user-btn" title="تعديل"
+              <button class="edit-user-btn" title="تعديل" aria-label="تعديل المستخدم"
                 data-id="${escHtml(String(userId || ""))}"
                 data-name="${escHtml(u.full_name || "")}"
                 data-email="${escHtml(u.email || "")}"
@@ -1681,7 +1850,7 @@ async function initDashboardUsersPage() {
                 style="padding:0.5rem;color:var(--primary);border-radius:var(--radius);background:var(--primary-light);">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
-              <button class="delete-user-btn" title="حذف"
+              <button class="delete-user-btn" title="حذف" aria-label="حذف المستخدم"
                 data-id="${escHtml(String(userId || ""))}"
                 data-name="${escHtml(u.full_name || "")}"
                 style="padding:0.5rem;color:var(--danger);border-radius:var(--radius);background:#fee2e2;">
@@ -1842,7 +2011,7 @@ async function initDashboardReportsPage() {
                 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>عرض</a>`
                   : ""
               }
-              <button class="delete-report-btn" data-id="${escHtml(String(reportId || ""))}" ${reportId ? "" : "disabled"}
+              <button class="delete-report-btn" aria-label="حذف الإبلاغ" data-id="${escHtml(String(reportId || ""))}" ${reportId ? "" : "disabled"}
                 style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.375rem 0.625rem;background:#fee2e2;color:var(--danger);border-radius:var(--radius-lg);font-size:0.8rem;border:none;cursor:pointer;">
                 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>حذف</button>
             </div>
@@ -1933,14 +2102,14 @@ async function initDashboardCategoriesPage() {
           <td style="font-size:0.875rem;color:var(--gray-500);">${c.createdAt ? new Date(c.createdAt).toLocaleDateString("ar-EG") : "-"}</td>
           <td>
             <div style="display:flex;gap:0.25rem;">
-              <button class="edit-cat-btn" title="تعديل"
+              <button class="edit-cat-btn" title="تعديل" aria-label="تعديل التصنيف"
                 data-id="${escHtml(String(categoryId || ""))}"
                 data-name="${escHtml(categoryName)}"
                 data-desc="${escHtml(c.description || "")}"
                 style="padding:0.5rem;color:var(--primary);border-radius:var(--radius);background:var(--primary-light);">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               </button>
-              <button class="delete-cat-btn" title="حذف"
+              <button class="delete-cat-btn" title="حذف" aria-label="حذف التصنيف"
                 data-id="${escHtml(String(categoryId || ""))}"
                 data-name="${escHtml(categoryName)}"
                 style="padding:0.5rem;color:var(--danger);border-radius:var(--radius);background:#fee2e2;">
@@ -2020,6 +2189,11 @@ async function initDashboardCategoriesPage() {
         categorySaving = false;
         return;
       }
+      if (name.length < 3) {
+        showNotification("اسم التصنيف يجب أن يحتوي على 3 أحرف على الأقل", "error");
+        categorySaving = false;
+        return;
+      }
       if (name.length > CATEGORY_NAME_MAX_LENGTH) {
         showNotification(`اسم التصنيف يجب ألا يتجاوز ${CATEGORY_NAME_MAX_LENGTH} حرفًا`, "error");
         categorySaving = false;
@@ -2051,15 +2225,6 @@ async function initDashboardCategoriesPage() {
       }
     });
 
-    const modalSubmitBtn = modalForm.querySelector('[type="submit"]');
-    if (modalSubmitBtn) {
-      modalSubmitBtn.addEventListener("click", (event) => {
-        event.preventDefault();
-        modalForm.dispatchEvent(
-          new Event("submit", { bubbles: true, cancelable: true }),
-        );
-      });
-    }
   }
 
   const searchInput = document.getElementById("categoriesSearch");
@@ -2091,17 +2256,21 @@ function updatePageGreeting() {
 // ===== Logout =====
 function initLogout() {
   document.querySelectorAll("a.logout, [data-logout]").forEach((el) => {
+    if (el.dataset.logoutBound === "true") return;
+    el.dataset.logoutBound = "true";
     el.addEventListener("click", async (e) => {
       e.preventDefault();
       try {
         await API.logout();
       } catch (err) {
-        showNotification(parseApiError(err) || "تعذر تسجيل الخروج. حاول مرة أخرى.", "error");
-        return;
+        if (err?.status !== 401) {
+          console.warn("Server logout failed; clearing the local session.", err);
+        }
+      } finally {
+        clearAuth();
+        const inPages = window.location.pathname.includes("/pages/");
+        window.location.href = inPages ? "login.html" : "pages/login.html";
       }
-      clearAuth();
-      const inPages = window.location.pathname.includes("/pages/");
-      window.location.href = inPages ? "login.html" : "pages/login.html";
     });
   });
 }
@@ -2178,6 +2347,28 @@ function ensureDashboardLogoutLink() {
     "beforeend",
     '<a href="login.html" class="logout" data-logout style="color:var(--danger);margin-top:0.75rem;">تسجيل الخروج</a>',
   );
+}
+
+function initHeaderUtilities() {
+  document
+    .querySelectorAll(".navbar-btn, .dashboard-topbar-right > button")
+    .forEach((button) => {
+      button.hidden = true;
+    });
+
+  document
+    .querySelectorAll(
+      ".navbar-search input, .mobile-search input, .dashboard-topbar-search input",
+    )
+    .forEach((input) => {
+      input.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        const query = input.value.trim();
+        if (!query) return;
+        window.location.href = `${pageHref("feed.html")}?q=${encodeURIComponent(query)}`;
+      });
+    });
 }
 
 function initAccessibleControls() {
@@ -2448,6 +2639,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initUserDropdown();
   initSidebar();
   ensureDashboardLogoutLink();
+  initHeaderUtilities();
   initAccessibleControls();
   initPasswordToggle();
   initStarRating();

@@ -222,6 +222,90 @@ function clearAuth() {
   sessionStorage.removeItem("currentUser");
 }
 
+const REACTED_POSTS_STORAGE_PREFIX = "multaqa:reacted-posts";
+
+function getReactedPostsStorageKey(user = getStoredUser()) {
+  const accountKey = user?.email?.trim().toLowerCase();
+  return accountKey
+    ? `${REACTED_POSTS_STORAGE_PREFIX}:${accountKey}`
+    : null;
+}
+
+function getStoredReactedPostIds(user = getStoredUser()) {
+  const storageKey = getReactedPostsStorageKey(user);
+  if (!storageKey) return new Set();
+
+  try {
+    const stored = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    return new Set(
+      (Array.isArray(stored) ? stored : [])
+        .map((id) => String(id))
+        .filter(Boolean),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function saveStoredReactedPostIds(ids, user = getStoredUser()) {
+  const storageKey = getReactedPostsStorageKey(user);
+  if (!storageKey) return;
+
+  try {
+    localStorage.setItem(storageKey, JSON.stringify([...ids]));
+  } catch {}
+}
+
+function getServerReactionState(post) {
+  if (!post || typeof post !== "object") return null;
+
+  for (const key of ["hasReacted", "currentUserReacted", "userReacted"]) {
+    if (typeof post[key] === "boolean") return post[key];
+  }
+
+  for (const key of ["currentUserReaction", "userReaction", "myReaction"]) {
+    if (Object.prototype.hasOwnProperty.call(post, key)) {
+      return post[key] !== null && post[key] !== undefined && post[key] !== false;
+    }
+  }
+
+  return null;
+}
+
+function hasReactedToPost(postId, post = null, user = getStoredUser()) {
+  const id = String(postId || "");
+  if (!id) return false;
+
+  const reactedIds = getStoredReactedPostIds(user);
+  const serverState = getServerReactionState(post);
+  if (serverState === null) return reactedIds.has(id);
+
+  if (serverState) reactedIds.add(id);
+  else reactedIds.delete(id);
+  saveStoredReactedPostIds(reactedIds, user);
+  return serverState;
+}
+
+function rememberReactedPost(postId, user = getStoredUser()) {
+  const id = String(postId || "");
+  if (!id) return;
+
+  const reactedIds = getStoredReactedPostIds(user);
+  reactedIds.add(id);
+  saveStoredReactedPostIds(reactedIds, user);
+}
+
+function setReactionButtonState(button, reacted) {
+  if (!button) return;
+  button.dataset.reacted = String(reacted);
+  button.classList.toggle("active", reacted);
+  button.disabled = reacted;
+  button.setAttribute("aria-pressed", String(reacted));
+
+  const label = button.querySelector("[data-reaction-label]");
+  if (label) label.textContent = reacted ? "تم الإعجاب" : "إعجاب";
+}
+
 const ADMIN_ONLY_PAGES = new Set([
   "add-user.html",
   "add-category.html",
@@ -1096,6 +1180,10 @@ async function initReviewDetailPage() {
       const postCommentsCountEl = document.getElementById("postCommentsCount");
       if (likeCountEl) likeCountEl.textContent = String(reactionsCount);
       if (postCommentsCountEl) postCommentsCountEl.textContent = String(commentsCount);
+      setReactionButtonState(
+        document.getElementById("likeBtn"),
+        hasReactedToPost(postId, mergedPost, storedUser),
+      );
       renderAverageRating(
         firstDefined(
           mergedPost.averageRating,
@@ -1121,9 +1209,8 @@ async function initReviewDetailPage() {
       const countEl = likeBtn.querySelector(".count");
       try {
         await API.saveReaction(postId, 1);
-        likeBtn.dataset.reacted = "true";
-        likeBtn.classList.add("active");
-        likeBtn.disabled = true;
+        rememberReactedPost(postId);
+        setReactionButtonState(likeBtn, true);
         const updatedPost = await getPostFeedItem(postId).catch(() => null);
         if (countEl && updatedPost) {
           countEl.textContent = String(
@@ -1432,8 +1519,16 @@ async function initFeedPage() {
   const searchInput = document.getElementById("feedSearch");
   const categoriesEl = document.getElementById("feedCategories");
   const feedCountEl = document.getElementById("feedPostsCount");
+  const paginationEl = document.getElementById("feedPagination");
   const userNameEls = document.querySelectorAll("[data-feed-user-name]");
+  const postsPerPage = 10;
+  const requestedPage = Number(
+    new URLSearchParams(window.location.search).get("page"),
+  );
   let allPosts = [];
+  let filteredPosts = [];
+  let currentPage =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
 
   const renderCategories = (categories) => {
     if (!categoriesEl) return;
@@ -1456,8 +1551,8 @@ async function initFeedPage() {
     });
   };
 
-  const renderPosts = (posts) => {
-    if (feedCountEl) feedCountEl.textContent = String(posts.length);
+  const renderPosts = (posts, totalCount = posts.length) => {
+    if (feedCountEl) feedCountEl.textContent = String(totalCount);
 
     if (!posts.length) {
       feedListEl.innerHTML = `
@@ -1484,6 +1579,7 @@ async function initFeedPage() {
         const searchable = [title, description, category, author.name, author.city].join(" ");
         const avatarLetter = String(author.name || "م").trim().charAt(0) || "م";
         const date = getPostDate(post);
+        const reacted = hasReactedToPost(postId, post);
 
         return `
           <article class="feed-post-card" data-feed-post data-category="${escHtml(category)}" data-search="${escHtml(searchable.toLowerCase())}">
@@ -1508,9 +1604,9 @@ async function initFeedPage() {
             </div>
 
             <div class="feed-post-actions">
-              <button type="button" data-feed-like="${escHtml(String(postId || ""))}" ${postId ? "" : "disabled"}>
+              <button type="button" class="${reacted ? "active" : ""}" data-feed-like="${escHtml(String(postId || ""))}" data-reacted="${reacted}" aria-pressed="${reacted}" ${postId && !reacted ? "" : "disabled"}>
                 ${Icons.heart}
-                <span>إعجاب</span>
+                <span data-reaction-label>${reacted ? "تم الإعجاب" : "إعجاب"}</span>
               </button>
               <a href="${escHtml(postHref)}">
                 ${Icons.send}
@@ -1533,13 +1629,17 @@ async function initFeedPage() {
         setButtonLoading(button, true);
         try {
           await API.saveReaction(postId, 1);
-          button.dataset.reacted = "true";
-          button.classList.add("active");
+          rememberReactedPost(postId);
+          setReactionButtonState(button, true);
           const countEl = button
             .closest("[data-feed-post]")
             ?.querySelector("[data-feed-reactions-count]");
           const updatedPost = await getPostFeedItem(postId).catch(() => null);
           if (countEl && updatedPost) {
+            const currentPost = allPosts.find(
+              (post) => String(getEntityId(post)) === String(postId),
+            );
+            if (currentPost) Object.assign(currentPost, updatedPost);
             countEl.textContent = String(
               getPostCount(
                 updatedPost,
@@ -1556,7 +1656,9 @@ async function initFeedPage() {
           showNotification(parseApiError(err), "error");
         } finally {
           setButtonLoading(button, false);
-          if (button.dataset.reacted === "true") button.disabled = true;
+          if (button.dataset.reacted === "true") {
+            setReactionButtonState(button, true);
+          }
         }
       });
     });
@@ -1584,31 +1686,146 @@ async function initFeedPage() {
     });
   };
 
-  const applyFeedFilters = () => {
+  const getPageTokens = (totalPages) => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    const pages = new Set([
+      1,
+      totalPages,
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+    ]);
+    const sortedPages = [...pages]
+      .filter((page) => page >= 1 && page <= totalPages)
+      .sort((a, b) => a - b);
+    const tokens = [];
+
+    sortedPages.forEach((page, index) => {
+      if (index && page - sortedPages[index - 1] > 1) tokens.push("ellipsis");
+      tokens.push(page);
+    });
+
+    return tokens;
+  };
+
+  const updatePageUrl = () => {
+    const url = new URL(window.location.href);
+    if (currentPage > 1) url.searchParams.set("page", String(currentPage));
+    else url.searchParams.delete("page");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  };
+
+  const renderPagination = (totalItems) => {
+    if (!paginationEl) return;
+    if (!totalItems) {
+      paginationEl.hidden = true;
+      paginationEl.innerHTML = "";
+      return;
+    }
+
+    const totalPages = Math.max(1, Math.ceil(totalItems / postsPerPage));
+    const start = (currentPage - 1) * postsPerPage + 1;
+    const end = Math.min(currentPage * postsPerPage, totalItems);
+    paginationEl.hidden = false;
+    paginationEl.innerHTML = `
+      <p class="feed-pagination-info">عرض ${start}-${end} من ${totalItems}</p>
+      <div class="feed-pagination-controls">
+        <button type="button" class="feed-pagination-arrow" data-feed-page="previous" aria-label="الصفحة السابقة" ${currentPage === 1 ? "disabled" : ""}>
+          ${Icons.chevronRight}
+        </button>
+        <div class="feed-pagination-pages">
+          ${getPageTokens(totalPages)
+            .map((token) =>
+              token === "ellipsis"
+                ? '<span class="feed-pagination-ellipsis" aria-hidden="true">...</span>'
+                : `<button type="button" class="feed-pagination-page${token === currentPage ? " active" : ""}" data-feed-page="${token}" ${token === currentPage ? 'aria-current="page"' : ""}>${token}</button>`,
+            )
+            .join("")}
+        </div>
+        <button type="button" class="feed-pagination-arrow" data-feed-page="next" aria-label="الصفحة التالية" ${currentPage === totalPages ? "disabled" : ""}>
+          ${Icons.chevronLeft}
+        </button>
+      </div>
+    `;
+  };
+
+  const renderCurrentPage = ({ scroll = false } = {}) => {
+    const totalPages = Math.max(
+      1,
+      Math.ceil(filteredPosts.length / postsPerPage),
+    );
+    currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+    const start = (currentPage - 1) * postsPerPage;
+    renderPosts(
+      filteredPosts.slice(start, start + postsPerPage),
+      filteredPosts.length,
+    );
+    renderPagination(filteredPosts.length);
+    updatePageUrl();
+
+    if (scroll) {
+      feedListEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const applyFeedFilters = ({ resetPage = true } = {}) => {
     const activeCategory =
       categoriesEl?.querySelector("[data-feed-category].active")?.dataset.feedCategory || "الكل";
     const term = (searchInput?.value || "").trim().toLowerCase();
-    let visibleCount = 0;
+    if (resetPage) currentPage = 1;
 
-    feedListEl.querySelectorAll("[data-feed-post]").forEach((card) => {
-      const category = card.dataset.category || "";
-      const searchable = card.dataset.search || "";
-      const matchesCategory = activeCategory === "الكل" || category === activeCategory;
-      const matchesSearch = !term || searchable.includes(term);
-      const isVisible = matchesCategory && matchesSearch;
-      card.style.display = isVisible ? "" : "none";
-      if (isVisible) visibleCount += 1;
+    filteredPosts = allPosts.filter((post) => {
+      const category = getCategoryName(post);
+      const author = getPostAuthor(post);
+      const searchable = [
+        firstDefined(post.title, post.name, ""),
+        post.description || post.content || post.body || "",
+        category,
+        author.name,
+        author.city,
+      ]
+        .join(" ")
+        .toLowerCase();
+      return (
+        (activeCategory === "الكل" || category === activeCategory) &&
+        (!term || searchable.includes(term))
+      );
     });
-
-    if (feedCountEl) feedCountEl.textContent = String(visibleCount);
+    renderCurrentPage();
   };
+
+  paginationEl?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-feed-page]");
+    if (!button || button.disabled) return;
+
+    const totalPages = Math.max(
+      1,
+      Math.ceil(filteredPosts.length / postsPerPage),
+    );
+    const target = button.dataset.feedPage;
+    const nextPage =
+      target === "previous"
+        ? currentPage - 1
+        : target === "next"
+          ? currentPage + 1
+          : Number(target);
+    if (!Number.isInteger(nextPage) || nextPage < 1 || nextPage > totalPages) {
+      return;
+    }
+
+    currentPage = nextPage;
+    renderCurrentPage({ scroll: true });
+  });
 
   feedListEl.innerHTML =
     '<div class="feed-loading">جاري تحميل المنشورات...</div>';
 
   try {
     const [postsRaw, categoriesRaw, profile] = await Promise.all([
-      API.getPosts({ page: 1, limit: 50 }),
+      API.getPosts(),
       API.getCategories().catch(() => []),
       API.getProfile().catch(() => getStoredUser()),
     ]);
@@ -1628,13 +1845,12 @@ async function initFeedPage() {
     );
 
     renderCategories([...apiCategories, ...postCategories]);
-    renderPosts(allPosts);
     const initialSearch = new URLSearchParams(window.location.search).get("q");
     if (searchInput && initialSearch) {
       searchInput.value = initialSearch;
-      applyFeedFilters();
     }
-    searchInput?.addEventListener("input", applyFeedFilters);
+    applyFeedFilters({ resetPage: false });
+    searchInput?.addEventListener("input", () => applyFeedFilters());
   } catch (err) {
     feedListEl.innerHTML =
       '<div class="feed-empty-state error"><h3>تعذر تحميل المنشورات</h3><p>تحقق من الاتصال أو حاول لاحقا.</p></div>';
@@ -2646,6 +2862,8 @@ const Icons = {
   search: `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`,
   bell: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`,
   chevronDown: `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>`,
+  chevronLeft: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>`,
+  chevronRight: `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>`,
   menu: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>`,
   x: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>`,
   user: `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,

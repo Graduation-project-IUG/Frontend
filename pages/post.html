@@ -184,7 +184,8 @@
         <div class="container" style="padding-top: 2rem; padding-bottom: 2rem">
           <!-- Back Button -->
           <a
-            href="javascript:history.back()"
+            href="feed.html"
+            id="postBackLink"
             style="
               display: flex;
               align-items: center;
@@ -240,7 +241,7 @@
                   <div class="review-detail-author">
                     <div class="review-detail-avatar" id="reviewAuthorAvatar" aria-hidden="true">م</div>
                     <div>
-                      <div class="name" id="reviewAuthorName"></div>
+                      <a class="name" id="reviewAuthorName" href="#"></a>
                       <div class="meta">
                         <span
                           ><svg
@@ -294,7 +295,7 @@
                     "
                   ></p>
                   <div class="review-actions-bar" data-post-id="">
-                    <button class="review-action-btn" id="likeBtn" aria-label="إعجاب بالمنشور">
+                    <button class="review-action-btn" id="likeBtn" aria-label="إعجاب بالمنشور" aria-pressed="false">
                       <svg
                         width="20"
                         height="20"
@@ -308,6 +309,7 @@
                         />
                       </svg>
                       <span class="count">0</span>
+                      <span class="action-label" data-reaction-label>إعجاب</span>
                     </button>
                     <button class="review-action-btn" id="commentsButton" aria-label="الانتقال إلى التعليقات">
                       <svg
@@ -341,7 +343,7 @@
                       </svg>
                       <span>مشاركة</span>
                     </button>
-                    <button class="review-action-btn report" id="reportBtn" aria-label="الإبلاغ عن المنشور">
+                    <button class="review-action-btn report" id="reportBtn" aria-label="الإبلاغ عن المنشور" aria-pressed="false">
                       <svg
                         width="20"
                         height="20"
@@ -355,7 +357,7 @@
                         />
                         <line x1="4" y1="22" x2="4" y2="15" />
                       </svg>
-                      <span>إبلاغ</span>
+                      <span data-report-label>إبلاغ</span>
                     </button>
                   </div>
                 </div>
@@ -608,16 +610,7 @@
               <div class="sidebar-card">
                 <h3>الناشر</h3>
                 <div style="display: flex; align-items: center; gap: 0.75rem">
-                  <img
-                    src="../images/avatar-saeed.jpg"
-                    alt=""
-                    style="
-                      width: 56px;
-                      height: 56px;
-                      border-radius: 50%;
-                      object-fit: cover;
-                    "
-                  />
+                  <div class="review-detail-avatar" id="sidebarAuthorAvatar" aria-hidden="true">م</div>
                   <div>
                     <p
                       id="sidebarAuthorName"
@@ -630,7 +623,8 @@
                   </div>
                 </div>
                 <a
-                  href="profile.html"
+                  href="#"
+                  id="publicAuthorProfileLink"
                   class="btn btn-primary"
                   style="
                     width: 100%;
@@ -643,7 +637,7 @@
               </div>
 
               <!-- Similar Reviews -->
-              <div class="sidebar-card">
+              <div class="sidebar-card" hidden aria-hidden="true">
                 <h3>مراجعات مشابهة</h3>
                 <div style="display: flex; flex-direction: column; gap: 1rem">
                   <a

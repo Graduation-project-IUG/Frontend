@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>الملف العام - ملتقى</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/style.css" />
+  </head>
+  <body>
+    <div class="site-wrapper">
+      <nav class="navbar">
+        <div class="container">
+          <div class="navbar-inner">
+            <a href="feed.html" class="navbar-logo">ملتقى</a>
+            <div class="navbar-links">
+              <a href="feed.html">آخر المنشورات</a>
+              <a href="my-posts.html">منشوراتي</a>
+              <a href="add-post.html">إضافة منشور</a>
+              <a href="dashboard.html">لوحة التحكم</a>
+            </div>
+            <div class="navbar-actions">
+              <a class="btn btn-secondary btn-sm navbar-inline-action" href="profile.html">ملفي</a>
+              <a class="btn btn-danger btn-sm navbar-inline-action" href="login.html" data-logout>تسجيل الخروج</a>
+              <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="فتح القائمة">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 12h18M3 6h18M3 18h18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="mobile-menu" id="mobileMenu">
+            <a href="feed.html">آخر المنشورات</a>
+            <a href="my-posts.html">منشوراتي</a>
+            <a href="add-post.html">إضافة منشور</a>
+            <a href="profile.html">ملفي</a>
+            <a href="dashboard.html">لوحة التحكم</a>
+            <div class="mobile-divider"></div>
+            <a href="login.html" class="logout" data-logout>تسجيل الخروج</a>
+          </div>
+        </div>
+      </nav>
+
+      <main class="public-profile-shell">
+        <div class="container public-profile-container">
+          <a class="public-profile-back" id="publicProfileBack" href="feed.html">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+            <span>رجوع</span>
+          </a>
+
+          <header class="public-profile-header" id="publicProfileHeader">
+            <div class="public-profile-avatar" id="publicProfileAvatar" aria-hidden="true">م</div>
+            <div class="public-profile-identity">
+              <span class="public-profile-eyebrow">الملف العام</span>
+              <h1 id="publicProfileName">جاري التحميل...</h1>
+              <p id="publicProfileBio">جاري تحميل بيانات المستخدم...</p>
+            </div>
+            <dl class="public-profile-facts">
+              <div>
+                <dt>المدينة</dt>
+                <dd id="publicProfileCity">—</dd>
+              </div>
+              <div>
+                <dt>الهاتف</dt>
+                <dd id="publicProfilePhone">—</dd>
+              </div>
+              <div>
+                <dt>تاريخ الميلاد</dt>
+                <dd id="publicProfileBirthdate">—</dd>
+              </div>
+              <div>
+                <dt>عضو منذ</dt>
+                <dd id="publicProfileCreatedAt">—</dd>
+              </div>
+            </dl>
+          </header>
+
+          <section class="public-profile-posts" aria-labelledby="publicProfilePostsTitle">
+            <div class="public-profile-section-header">
+              <div>
+                <span class="public-profile-eyebrow">مساهمات المستخدم</span>
+                <h2 id="publicProfilePostsTitle">المنشورات</h2>
+              </div>
+              <span><strong id="publicProfilePostsCount">0</strong> في هذه الصفحة</span>
+            </div>
+            <div id="publicProfilePostsList" class="public-profile-posts-list" aria-live="polite">
+              <div class="feed-loading">جاري تحميل المنشورات...</div>
+            </div>
+            <nav id="publicProfilePagination" class="feed-pagination" aria-label="صفحات منشورات المستخدم" hidden></nav>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <script src="../js/main.js"></script>
+  </body>
+</html>

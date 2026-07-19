@@ -103,6 +103,7 @@ const API = {
       body: JSON.stringify({ full_name, email, password }),
     }),
   getProfile: () => apiFetch("/user/profile"),
+  getPublicProfile: (id) => apiFetch(`/user/profile/${id}`),
   updateProfile: (data) =>
     apiFetch("/user/profile", { method: "PUT", body: JSON.stringify(data) }),
 
@@ -124,6 +125,10 @@ const API = {
   getMyPosts: (params = {}) => {
     const q = new URLSearchParams(params).toString();
     return apiFetch(`/user/posts${q ? "?" + q : ""}`);
+  },
+  getPostsByUser: (id, params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return apiFetch(`/posts/user/${id}${q ? "?" + q : ""}`);
   },
 
   // Comments
@@ -295,15 +300,133 @@ function rememberReactedPost(postId, user = getStoredUser()) {
   saveStoredReactedPostIds(reactedIds, user);
 }
 
+function forgetReactedPost(postId, user = getStoredUser()) {
+  const id = String(postId || "");
+  if (!id) return;
+
+  const reactedIds = getStoredReactedPostIds(user);
+  reactedIds.delete(id);
+  saveStoredReactedPostIds(reactedIds, user);
+}
+
+function getActionRecordId(post, type) {
+  if (!post || typeof post !== "object") return null;
+  const isReaction = type === "reaction";
+  const keys = isReaction
+    ? ["reactionId", "reaction_id", "currentUserReactionId", "userReactionId"]
+    : ["reportId", "report_id", "currentUserReportId", "userReportId"];
+  const nestedKeys = isReaction
+    ? ["currentUserReaction", "userReaction", "myReaction"]
+    : ["currentUserReport", "userReport", "myReport"];
+
+  for (const key of keys) {
+    if (post[key] !== undefined && post[key] !== null) return post[key];
+  }
+  for (const key of nestedKeys) {
+    if (post[key] && typeof post[key] === "object" && post[key].id != null) {
+      return post[key].id;
+    }
+  }
+  return null;
+}
+
 function setReactionButtonState(button, reacted) {
   if (!button) return;
   button.dataset.reacted = String(reacted);
   button.classList.toggle("active", reacted);
-  button.disabled = reacted;
   button.setAttribute("aria-pressed", String(reacted));
+  button.setAttribute(
+    "aria-label",
+    reacted ? "إزالة الإعجاب من المنشور" : "إعجاب بالمنشور",
+  );
 
   const label = button.querySelector("[data-reaction-label]");
-  if (label) label.textContent = reacted ? "تم الإعجاب" : "إعجاب";
+  if (label) label.textContent = reacted ? "إزالة الإعجاب" : "إعجاب";
+}
+
+function getServerReportState(post) {
+  if (!post || typeof post !== "object") return false;
+  for (const key of ["hasReported", "currentUserReported", "userReported"]) {
+    if (typeof post[key] === "boolean") return post[key];
+  }
+  return false;
+}
+
+function setReportButtonState(button, reported) {
+  if (!button) return;
+  button.dataset.reported = String(reported);
+  button.classList.toggle("active", reported);
+  button.setAttribute("aria-pressed", String(reported));
+  button.setAttribute(
+    "aria-label",
+    reported ? "إزالة البلاغ عن المنشور" : "الإبلاغ عن المنشور",
+  );
+
+  const label = button.querySelector("[data-report-label]");
+  if (label) label.textContent = reported ? "إزالة البلاغ" : "إبلاغ";
+}
+
+function requestReportReason() {
+  return new Promise((resolve) => {
+    document.querySelector(".report-dialog-overlay")?.remove();
+    const previouslyFocused = document.activeElement;
+    let settled = false;
+    const overlay = document.createElement("div");
+    overlay.className = "report-dialog-overlay";
+    overlay.innerHTML = `
+      <section class="report-dialog" role="dialog" aria-modal="true" aria-labelledby="reportDialogTitle">
+        <div class="report-dialog-header">
+          <div>
+            <span>مراجعة المحتوى</span>
+            <h2 id="reportDialogTitle">الإبلاغ عن المنشور</h2>
+          </div>
+          <button type="button" class="report-dialog-close" aria-label="إغلاق">${Icons.x}</button>
+        </div>
+        <form class="report-dialog-form">
+          <label for="reportReasonInput">سبب البلاغ</label>
+          <textarea id="reportReasonInput" rows="4" maxlength="500" placeholder="اكتب سبباً واضحاً لا يقل عن 8 أحرف" required></textarea>
+          <p class="report-dialog-error" role="alert" hidden></p>
+          <div class="report-dialog-actions">
+            <button type="button" class="btn btn-secondary" data-report-cancel>إلغاء</button>
+            <button type="submit" class="btn btn-danger">إرسال البلاغ</button>
+          </div>
+        </form>
+      </section>`;
+    document.body.appendChild(overlay);
+
+    const textarea = overlay.querySelector("textarea");
+    const errorEl = overlay.querySelector(".report-dialog-error");
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      document.removeEventListener("keydown", handleKeydown);
+      overlay.remove();
+      previouslyFocused?.focus?.();
+      resolve(value);
+    };
+    const handleKeydown = (event) => {
+      if (event.key === "Escape") finish(null);
+    };
+
+    overlay.querySelector(".report-dialog-close")?.addEventListener("click", () => finish(null));
+    overlay.querySelector("[data-report-cancel]")?.addEventListener("click", () => finish(null));
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) finish(null);
+    });
+    overlay.querySelector("form")?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const reason = textarea.value.trim();
+      if (reason.length < 8) {
+        errorEl.textContent = "سبب البلاغ يجب أن يكون 8 أحرف على الأقل.";
+        errorEl.hidden = false;
+        textarea.focus();
+        return;
+      }
+      finish(reason);
+    });
+    document.addEventListener("keydown", handleKeydown);
+    textarea.focus();
+  });
 }
 
 const ADMIN_ONLY_PAGES = new Set([
@@ -318,6 +441,7 @@ const AUTH_ONLY_PAGES = new Set([
   "feed.html",
   "my-posts.html",
   "post.html",
+  "user-profile.html",
   "review-detail.html",
   "profile.html",
   "settings.html",
@@ -648,7 +772,21 @@ function getCategoryName(post) {
 function getPostAuthor(post) {
   const author = post?.user || post?.author || post?.owner || {};
   return {
-    name: firstDefined(author.full_name, author.name, post?.authorName, post?.user_name, "مستخدم"),
+    id: firstDefined(
+      author.id,
+      author.userId,
+      post?.userId,
+      post?.user_id,
+      post?.authorId,
+    ),
+    name: firstDefined(
+      author.full_name,
+      author.name,
+      post?.full_name,
+      post?.authorName,
+      post?.user_name,
+      "مستخدم",
+    ),
     city: firstDefined(author.city, post?.authorCity, post?.user_city, ""),
   };
 }
@@ -669,11 +807,67 @@ function getPostCount(post, ...keys) {
   return 0;
 }
 
+function formatRelativeTime(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  const elapsedMs = Date.now() - date.getTime();
+  const future = elapsedMs < 0;
+  const absoluteSeconds = Math.max(0, Math.abs(elapsedMs) / 1000);
+  const units = [
+    ["year", 365 * 24 * 60 * 60],
+    ["month", 30 * 24 * 60 * 60],
+    ["day", 24 * 60 * 60],
+    ["hour", 60 * 60],
+    ["minute", 60],
+  ];
+  const formatter = new Intl.RelativeTimeFormat("ar", { numeric: "always" });
+
+  for (const [unit, seconds] of units) {
+    if (absoluteSeconds >= seconds) {
+      const amount = Math.floor(absoluteSeconds / seconds);
+      return formatter.format(future ? amount : -amount, unit);
+    }
+  }
+  return "الآن";
+}
+
+function formatAbsoluteDate(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return new Intl.DateTimeFormat("ar", { dateStyle: "long" }).format(date);
+}
+
+function renderFractionalStars(ratingValue, { compact = false } = {}) {
+  const rating = Math.max(0, Math.min(5, Number(ratingValue) || 0));
+  const starPath =
+    "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z";
+  const stars = Array.from({ length: 5 }, (_, index) => {
+    const fill = Math.max(0, Math.min(1, rating - index)) * 100;
+    return `<span class="fractional-star${compact ? " compact" : ""}">
+      <svg class="fractional-star-empty" viewBox="0 0 24 24" aria-hidden="true"><path d="${starPath}"/></svg>
+      <span class="fractional-star-fill" style="width:${fill}%">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="${starPath}"/></svg>
+      </span>
+    </span>`;
+  }).join("");
+
+  return `<span class="fractional-stars" role="img" aria-label="${rating.toFixed(1)} من 5">${stars}</span>`;
+}
+
 async function getPostFeedItem(postId) {
-  const postsRaw = await API.getPosts({ page: 1, limit: 100 });
+  const post = await API.getPost(postId);
+  const postsRaw = await API.getPosts({
+    page: 1,
+    limit: 10,
+    search: post.title,
+    searchIn: "title",
+  });
   return unwrapApiArray(postsRaw, ["posts"]).find(
     (post) => String(getEntityId(post)) === String(postId),
-  );
+  ) || post;
 }
 
 function truncateText(text, maxLength = 220) {
@@ -949,6 +1143,13 @@ async function initReviewDetailPage() {
 
   const params = new URLSearchParams(window.location.search);
   const postId = params.get("id");
+  const backLink = document.getElementById("postBackLink");
+  backLink?.addEventListener("click", (event) => {
+    if (window.history.length > 1) {
+      event.preventDefault();
+      window.history.back();
+    }
+  });
 
   // Update greeting with logged-in user's name
   const greetingEl = document.getElementById("pageGreeting");
@@ -1109,18 +1310,21 @@ async function initReviewDetailPage() {
     const container = document.getElementById("reviewAverageRating");
     if (!container) return;
     const rating = Math.max(0, Math.min(5, Number(ratingValue) || 0));
-    const rounded = Math.round(rating);
     container.setAttribute("aria-label", `متوسط التقييم ${rating.toFixed(1)} من 5`);
-    container.innerHTML = `${renderCommentStarsHtml(rounded)}<span style="font-size:0.875rem;color:var(--gray-500);margin-right:0.25rem;">(${rating.toFixed(1)})</span>`;
+    container.innerHTML = `${renderFractionalStars(rating)}<strong class="review-rating-value">${rating.toFixed(1)} <span>من 5</span></strong>`;
   };
 
   if (postId) {
     try {
-      const [post, postsRaw, categoriesRaw, myPostsRaw] = await Promise.all([
-        API.getPost(postId),
-        API.getPosts({ page: 1, limit: 100 }).catch(() => []),
+      const post = await API.getPost(postId);
+      const [postsRaw, categoriesRaw] = await Promise.all([
+        API.getPosts({
+          page: 1,
+          limit: 10,
+          search: post.title,
+          searchIn: "title",
+        }).catch(() => []),
         API.getCategories().catch(() => []),
-        API.getMyPosts({ page: 1, limit: 100 }).catch(() => []),
       ]);
       const feedPost = unwrapApiArray(postsRaw, ["posts"]).find(
         (item) => String(getEntityId(item)) === String(postId),
@@ -1144,24 +1348,42 @@ async function initReviewDetailPage() {
       if (descEl) descEl.textContent = firstDefined(mergedPost.description, mergedPost.content, mergedPost.body, "");
       if (badgeEl) badgeEl.textContent = getCategoryName(mergedPost);
       const storedUser = getStoredUser();
-      const ownsPost = unwrapApiArray(myPostsRaw, ["posts"]).some(
-        (item) => String(getEntityId(item)) === String(postId),
-      );
-      const postAuthor = ownsPost
-        ? { name: storedUser.full_name || "مستخدم", city: storedUser.city || "" }
-        : getPostAuthor(mergedPost);
-      const authorName = postAuthor.name || "";
-      const authorCity = postAuthor.city || "";
+      const postAuthor = getPostAuthor(mergedPost);
+      const authorId = postAuthor.id;
+      const publicProfile = authorId
+        ? await API.getPublicProfile(authorId).catch(() => null)
+        : null;
+      const authorName = firstDefined(publicProfile?.full_name, postAuthor.name, "مستخدم");
+      const authorCity = firstDefined(publicProfile?.city, postAuthor.city, "");
       if (authorEl) authorEl.textContent = authorName || "مستخدم";
       if (dateEl) dateEl.textContent = getPostDate(post);
       const authorCityEl = document.getElementById("reviewAuthorCity");
       const sidebarNameEl = document.getElementById("sidebarAuthorName");
       const sidebarCityEl = document.getElementById("sidebarAuthorCity");
+      const publicProfileLink = document.getElementById("publicAuthorProfileLink");
+      const profileHref = authorId
+        ? `user-profile.html?id=${encodeURIComponent(String(authorId))}`
+        : null;
+      if (authorEl) {
+        if (profileHref) authorEl.href = profileHref;
+        else authorEl.removeAttribute("href");
+      }
+      if (publicProfileLink) {
+        if (profileHref) {
+          publicProfileLink.href = profileHref;
+          publicProfileLink.removeAttribute("aria-disabled");
+        } else {
+          publicProfileLink.removeAttribute("href");
+          publicProfileLink.setAttribute("aria-disabled", "true");
+        }
+      }
       if (authorCityEl) authorCityEl.textContent = authorCity || "";
       if (sidebarNameEl) sidebarNameEl.textContent = authorName || "مستخدم";
       if (sidebarCityEl) sidebarCityEl.textContent = authorCity || "";
       const authorAvatar = document.getElementById("reviewAuthorAvatar");
+      const sidebarAuthorAvatar = document.getElementById("sidebarAuthorAvatar");
       if (authorAvatar) authorAvatar.textContent = (authorName || "م").trim().charAt(0) || "م";
+      if (sidebarAuthorAvatar) sidebarAuthorAvatar.textContent = (authorName || "م").trim().charAt(0) || "م";
       const commentsCount = getPostCount(
         mergedPost,
         "commentsCount",
@@ -1180,10 +1402,16 @@ async function initReviewDetailPage() {
       const postCommentsCountEl = document.getElementById("postCommentsCount");
       if (likeCountEl) likeCountEl.textContent = String(reactionsCount);
       if (postCommentsCountEl) postCommentsCountEl.textContent = String(commentsCount);
-      setReactionButtonState(
-        document.getElementById("likeBtn"),
-        hasReactedToPost(postId, mergedPost, storedUser),
-      );
+      const detailLikeBtn = document.getElementById("likeBtn");
+      const detailReportBtn = document.getElementById("reportBtn");
+      setReactionButtonState(detailLikeBtn, hasReactedToPost(postId, mergedPost, storedUser));
+      setReportButtonState(detailReportBtn, getServerReportState(mergedPost));
+      if (detailLikeBtn) {
+        detailLikeBtn.dataset.reactionId = String(getActionRecordId(mergedPost, "reaction") || "");
+      }
+      if (detailReportBtn) {
+        detailReportBtn.dataset.reportId = String(getActionRecordId(mergedPost, "report") || "");
+      }
       renderAverageRating(
         firstDefined(
           mergedPost.averageRating,
@@ -1205,15 +1433,26 @@ async function initReviewDetailPage() {
   const likeBtn = document.getElementById("likeBtn");
   if (likeBtn && postId) {
     likeBtn.addEventListener("click", async () => {
-      if (likeBtn.dataset.reacted === "true") return;
-      const countEl = likeBtn.querySelector(".count");
+      const reacted = likeBtn.dataset.reacted === "true";
+      if (reacted && !likeBtn.dataset.reactionId) {
+        showNotification(
+          "إزالة الإعجاب تحتاج أن يعيد الخادم reactionId مع بيانات المنشور أو أن يوفّر حذف التفاعل بمعرّف المنشور.",
+          "error",
+        );
+        return;
+      }
+      setButtonLoading(likeBtn, true);
       try {
-        await API.saveReaction(postId, 1);
-        rememberReactedPost(postId);
-        setReactionButtonState(likeBtn, true);
+        if (reacted) {
+          await API.deleteReaction(likeBtn.dataset.reactionId);
+          forgetReactedPost(postId);
+        } else {
+          await API.saveReaction(postId, 1);
+          rememberReactedPost(postId);
+        }
         const updatedPost = await getPostFeedItem(postId).catch(() => null);
-        if (countEl && updatedPost) {
-          countEl.textContent = String(
+        if (updatedPost) {
+          likeBtn.dataset.nextCount = String(
             getPostCount(
               updatedPost,
               "reactionsCount",
@@ -1224,12 +1463,31 @@ async function initReviewDetailPage() {
             ),
           );
         }
-        showNotification("تم تسجيل الإعجاب", "success");
+        likeBtn.dataset.nextReacted = String(
+          updatedPost ? hasReactedToPost(postId, updatedPost) : !reacted,
+        );
+        likeBtn.dataset.nextReactionId = String(
+          updatedPost ? getActionRecordId(updatedPost, "reaction") || "" : "",
+        );
+        showNotification(reacted ? "تمت إزالة الإعجاب" : "تم تسجيل الإعجاب", "success");
       } catch (err) {
         showNotification(
           err.status === 401 ? "يجب تسجيل الدخول أولاً" : parseApiError(err),
           "error",
         );
+      } finally {
+        setButtonLoading(likeBtn, false);
+        if (likeBtn.dataset.nextReacted) {
+          setReactionButtonState(likeBtn, likeBtn.dataset.nextReacted === "true");
+          likeBtn.dataset.reactionId = likeBtn.dataset.nextReactionId || "";
+          const restoredCountEl = likeBtn.querySelector(".count");
+          if (restoredCountEl && likeBtn.dataset.nextCount) {
+            restoredCountEl.textContent = likeBtn.dataset.nextCount;
+          }
+          delete likeBtn.dataset.nextReacted;
+          delete likeBtn.dataset.nextReactionId;
+          delete likeBtn.dataset.nextCount;
+        }
       }
     });
   }
@@ -1349,25 +1607,44 @@ async function initReviewDetailPage() {
   const reportBtn = document.getElementById("reportBtn");
   if (reportBtn && postId) {
     reportBtn.addEventListener("click", async () => {
-      const reason = prompt("الرجاء ذكر سبب الإبلاغ (8 أحرف على الأقل):");
-      if (!reason) return;
-      if (reason.trim().length < 8) {
-        showNotification("سبب الإبلاغ قصير جداً (8 أحرف على الأقل)", "error");
+      const reported = reportBtn.dataset.reported === "true";
+      if (reported && !reportBtn.dataset.reportId) {
+        showNotification(
+          "إزالة البلاغ تحتاج أن يعيد الخادم reportId مع بيانات المنشور أو أن يوفّر حذف البلاغ بمعرّف المنشور.",
+          "error",
+        );
         return;
       }
+      const reason = reported ? null : await requestReportReason();
+      if (!reported && !reason) return;
+      setButtonLoading(reportBtn, true);
       try {
-        await API.saveReport(postId, reason.trim());
-        showNotification(
-          "تم الإبلاغ عن هذا المنشور بنجاح، شكراً لك",
-          "success",
+        if (reported) {
+          await API.deleteReport(reportBtn.dataset.reportId);
+        } else {
+          await API.saveReport(postId, reason);
+        }
+        const updatedPost = await getPostFeedItem(postId).catch(() => null);
+        reportBtn.dataset.nextReported = String(
+          updatedPost ? getServerReportState(updatedPost) : !reported,
         );
-        reportBtn.disabled = true;
-        reportBtn.style.opacity = "0.5";
+        reportBtn.dataset.nextReportId = String(
+          updatedPost ? getActionRecordId(updatedPost, "report") || "" : "",
+        );
+        showNotification(reported ? "تمت إزالة البلاغ" : "تم إرسال البلاغ للمراجعة", "success");
       } catch (err) {
         showNotification(
           err.status === 401 ? "يجب تسجيل الدخول أولاً" : parseApiError(err),
           "error",
         );
+      } finally {
+        setButtonLoading(reportBtn, false);
+        if (reportBtn.dataset.nextReported) {
+          setReportButtonState(reportBtn, reportBtn.dataset.nextReported === "true");
+          reportBtn.dataset.reportId = reportBtn.dataset.nextReportId || "";
+          delete reportBtn.dataset.nextReported;
+          delete reportBtn.dataset.nextReportId;
+        }
       }
     });
   }
@@ -1511,55 +1788,235 @@ async function initMyPostsPage() {
   }
 }
 
+// ===== Public User Profile Page =====
+async function initPublicProfilePage() {
+  const postsListEl = document.getElementById("publicProfilePostsList");
+  if (!postsListEl) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const userId = params.get("id");
+  const postsCountEl = document.getElementById("publicProfilePostsCount");
+  const paginationEl = document.getElementById("publicProfilePagination");
+  const backLink = document.getElementById("publicProfileBack");
+  const postsPerPage = 10;
+  const requestedPage = Number(params.get("page"));
+  let currentPage = Number.isInteger(requestedPage) && requestedPage > 0
+    ? requestedPage
+    : 1;
+  let currentPosts = [];
+  let hasNextPage = false;
+
+  backLink?.addEventListener("click", (event) => {
+    if (window.history.length > 1) {
+      event.preventDefault();
+      window.history.back();
+    }
+  });
+
+  const setText = (id, value, fallback = "—") => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = firstDefined(value, fallback);
+  };
+
+  const renderPosts = (posts) => {
+    if (postsCountEl) postsCountEl.textContent = String(posts.length);
+    if (!posts.length) {
+      postsListEl.innerHTML = `
+        <div class="feed-empty-state">
+          <h3>لا توجد منشورات بعد</h3>
+          <p>لم ينشر هذا المستخدم أي تجربة في هذه الصفحة.</p>
+        </div>`;
+      return;
+    }
+
+    postsListEl.innerHTML = posts
+      .map((post) => {
+        const postId = getEntityId(post);
+        const rating = Number(firstDefined(post.averageRating, post.avgRating, post.rating, 0)) || 0;
+        const commentsCount = getPostCount(post, "commentsCount", "commentCount", "comments");
+        const reactionsCount = getPostCount(post, "reactionsCount", "reactionCount", "reactions", "likesCount", "likes");
+        const description = truncateText(post.description || post.content || post.body || "", 260);
+        const href = postId ? `post.html?id=${encodeURIComponent(String(postId))}` : "#";
+        return `
+          <article class="feed-post-card public-profile-post-card">
+            <header class="feed-post-header">
+              <div class="feed-post-author">
+                <time datetime="${escHtml(String(firstDefined(post.createdAt, post.created_at, "")))}" title="${escHtml(formatAbsoluteDate(firstDefined(post.createdAt, post.created_at)))}">${escHtml(getPostDate(post))}</time>
+              </div>
+              <span class="feed-post-category">${escHtml(getCategoryName(post))}</span>
+            </header>
+            <a class="feed-post-content" href="${escHtml(href)}">
+              <h3>${escHtml(firstDefined(post.title, "منشور بدون عنوان"))}</h3>
+              ${description ? `<p>${escHtml(description)}</p>` : ""}
+            </a>
+            <div class="feed-post-metrics compact">
+              <div class="feed-rating-metric">
+                <div class="feed-rating-number"><strong>${rating.toFixed(1)}</strong><span>/ 5</span></div>
+                ${renderFractionalStars(rating, { compact: true })}
+                <span>متوسط التقييم</span>
+              </div>
+              <div class="feed-number-metric">${Icons.heart}<strong>${reactionsCount}</strong><span>إعجاب</span></div>
+              <div class="feed-number-metric">${Icons.messageCircle}<strong>${commentsCount}</strong><span>تعليق</span></div>
+            </div>
+          </article>`;
+      })
+      .join("");
+  };
+
+  const renderPagination = () => {
+    if (!paginationEl) return;
+    if (!currentPosts.length && currentPage === 1) {
+      paginationEl.hidden = true;
+      return;
+    }
+    paginationEl.hidden = false;
+    paginationEl.innerHTML = `
+      <p class="feed-pagination-info">الصفحة ${currentPage} · ${currentPosts.length} منشور</p>
+      <div class="feed-pagination-controls">
+        <button type="button" class="feed-pagination-arrow" data-profile-page="previous" aria-label="الصفحة السابقة" ${currentPage === 1 ? "disabled" : ""}>${Icons.chevronRight}</button>
+        <span class="feed-pagination-page active" aria-current="page">${currentPage}</span>
+        <button type="button" class="feed-pagination-arrow" data-profile-page="next" aria-label="الصفحة التالية" ${hasNextPage ? "" : "disabled"}>${Icons.chevronLeft}</button>
+      </div>`;
+  };
+
+  const loadPosts = async ({ scroll = false } = {}) => {
+    postsListEl.setAttribute("aria-busy", "true");
+    postsListEl.innerHTML = '<div class="feed-loading">جاري تحميل المنشورات...</div>';
+    if (paginationEl) paginationEl.hidden = true;
+    try {
+      const postsRaw = await API.getPostsByUser(userId, {
+        page: currentPage,
+        limit: postsPerPage,
+      });
+      currentPosts = unwrapApiArray(postsRaw, ["posts"]);
+      if (!currentPosts.length && currentPage > 1) {
+        currentPage -= 1;
+        await loadPosts({ scroll });
+        return;
+      }
+      hasNextPage = false;
+      if (currentPosts.length === postsPerPage) {
+        const nextRaw = await API.getPostsByUser(userId, {
+          page: currentPage + 1,
+          limit: postsPerPage,
+        });
+        hasNextPage = unwrapApiArray(nextRaw, ["posts"]).length > 0;
+      }
+      renderPosts(currentPosts);
+      renderPagination();
+      const url = new URL(window.location.href);
+      if (currentPage > 1) url.searchParams.set("page", String(currentPage));
+      else url.searchParams.delete("page");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+      if (scroll) postsListEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      currentPosts = [];
+      if (postsCountEl) postsCountEl.textContent = "0";
+      postsListEl.innerHTML = `
+        <div class="feed-empty-state error">
+          <h3>تعذر تحميل منشورات المستخدم</h3>
+          <p>${escHtml(parseApiError(err))}</p>
+          <button type="button" class="btn btn-secondary btn-sm" data-profile-retry>إعادة المحاولة</button>
+        </div>`;
+      postsListEl.querySelector("[data-profile-retry]")?.addEventListener("click", () => loadPosts());
+    } finally {
+      postsListEl.setAttribute("aria-busy", "false");
+    }
+  };
+
+  if (!userId) {
+    setText("publicProfileName", "مستخدم غير محدد");
+    setText("publicProfileBio", "الرابط لا يحتوي على معرّف مستخدم صالح.");
+    postsListEl.innerHTML = '<div class="feed-empty-state error"><h3>تعذر فتح الملف</h3><p>معرّف المستخدم مفقود من الرابط.</p></div>';
+    return;
+  }
+
+  try {
+    const profile = await API.getPublicProfile(userId);
+    const name = firstDefined(profile.full_name, profile.name, "مستخدم");
+    setText("publicProfileName", name);
+    setText("publicProfileBio", profile.bio, "لا توجد نبذة شخصية.");
+    setText("publicProfileCity", profile.city);
+    setText("publicProfilePhone", profile.phone);
+    setText("publicProfileBirthdate", profile.birthdate ? formatAbsoluteDate(profile.birthdate) : null);
+    const createdAtEl = document.getElementById("publicProfileCreatedAt");
+    if (createdAtEl) {
+      createdAtEl.textContent = formatRelativeTime(profile.createdAt || profile.created_at);
+      createdAtEl.title = formatAbsoluteDate(profile.createdAt || profile.created_at);
+    }
+    const avatar = document.getElementById("publicProfileAvatar");
+    if (avatar) avatar.textContent = String(name).trim().charAt(0) || "م";
+    document.title = `${name} - ملتقى`;
+  } catch (err) {
+    setText("publicProfileName", "تعذر تحميل الملف");
+    setText("publicProfileBio", parseApiError(err));
+  }
+
+  paginationEl?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-profile-page]");
+    if (!button || button.disabled) return;
+    currentPage += button.dataset.profilePage === "next" ? 1 : -1;
+    currentPage = Math.max(1, currentPage);
+    loadPosts({ scroll: true });
+  });
+  await loadPosts();
+}
+
 // ===== Feed Page =====
 async function initFeedPage() {
   const feedListEl = document.getElementById("feedPostsList");
   if (!feedListEl) return;
 
+  const filterForm = document.getElementById("feedFilterForm");
   const searchInput = document.getElementById("feedSearch");
-  const categoriesEl = document.getElementById("feedCategories");
+  const searchInSelect = document.getElementById("feedSearchIn");
+  const categorySelect = document.getElementById("feedCategory");
   const feedCountEl = document.getElementById("feedPostsCount");
   const paginationEl = document.getElementById("feedPagination");
   const userNameEls = document.querySelectorAll("[data-feed-user-name]");
   const postsPerPage = 10;
-  const requestedPage = Number(
-    new URLSearchParams(window.location.search).get("page"),
-  );
-  let allPosts = [];
-  let filteredPosts = [];
+  const initialParams = new URLSearchParams(window.location.search);
+  const requestedPage = Number(initialParams.get("page"));
   let currentPage =
     Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  let currentPosts = [];
+  let hasNextPage = false;
+  let requestVersion = 0;
 
-  const renderCategories = (categories) => {
-    if (!categoriesEl) return;
-    const labels = ["الكل", ...new Set(categories.filter(Boolean))];
-    categoriesEl.innerHTML = labels
-      .map(
-        (label, index) =>
-          `<button type="button" class="feed-category-chip${index === 0 ? " active" : ""}" data-feed-category="${escHtml(label)}">${escHtml(label)}</button>`,
-      )
-      .join("");
-
-    categoriesEl.querySelectorAll("[data-feed-category]").forEach((button) => {
-      button.addEventListener("click", () => {
-        categoriesEl
-          .querySelectorAll("[data-feed-category]")
-          .forEach((item) => item.classList.remove("active"));
-        button.classList.add("active");
-        applyFeedFilters();
-      });
-    });
+  const getFilterParams = (page = currentPage, limit = postsPerPage) => {
+    const params = { page, limit };
+    const search = searchInput?.value.trim();
+    const searchIn = searchInSelect?.value;
+    const category = categorySelect?.value;
+    if (search) {
+      params.search = search;
+      if (searchIn) params.searchIn = searchIn;
+    }
+    if (category) params.category = category;
+    return params;
   };
 
-  const renderPosts = (posts, totalCount = posts.length) => {
-    if (feedCountEl) feedCountEl.textContent = String(totalCount);
+  const updateFeedUrl = () => {
+    const url = new URL(window.location.href);
+    ["q", "search", "searchIn", "category", "page"].forEach((key) =>
+      url.searchParams.delete(key),
+    );
+    const params = getFilterParams();
+    if (params.search) url.searchParams.set("search", params.search);
+    if (params.searchIn) url.searchParams.set("searchIn", params.searchIn);
+    if (params.category) url.searchParams.set("category", params.category);
+    if (currentPage > 1) url.searchParams.set("page", String(currentPage));
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  };
+
+  const renderPosts = (posts) => {
+    if (feedCountEl) feedCountEl.textContent = String(posts.length);
 
     if (!posts.length) {
       feedListEl.innerHTML = `
         <div class="feed-empty-state">
-          <h3>لا توجد منشورات بعد</h3>
-          <p>ابدأ بمشاركة تجربة أو رأي ليستفيد باقي المستخدمين.</p>
-          <a href="add-post.html" class="btn btn-primary btn-sm">إضافة منشور</a>
+          <h3>لا توجد نتائج مطابقة</h3>
+          <p>جرّب تغيير نص البحث أو مجال البحث أو التصنيف.</p>
         </div>
       `;
       return;
@@ -1575,19 +2032,25 @@ async function initFeedPage() {
         const description = truncateText(post.description || post.content || post.body || "", 320);
         const commentsCount = getPostCount(post, "commentsCount", "commentCount", "comments");
         const reactionsCount = getPostCount(post, "reactionsCount", "reactionCount", "reactions", "likesCount", "likes");
-        const rating = firstDefined(post.averageRating, post.avgRating, post.rating, "");
-        const searchable = [title, description, category, author.name, author.city].join(" ");
+        const rating = Number(firstDefined(post.averageRating, post.avgRating, post.rating, 0)) || 0;
+        const reportsCountValue = firstDefined(post.reportsCount, post.reportCount);
+        const reportsCount = Number.isFinite(Number(reportsCountValue))
+          ? Number(reportsCountValue)
+          : null;
         const avatarLetter = String(author.name || "م").trim().charAt(0) || "م";
         const date = getPostDate(post);
         const reacted = hasReactedToPost(postId, post);
+        const reported = getServerReportState(post);
+        const reactionId = getActionRecordId(post, "reaction");
+        const reportId = getActionRecordId(post, "report");
 
         return `
-          <article class="feed-post-card" data-feed-post data-category="${escHtml(category)}" data-search="${escHtml(searchable.toLowerCase())}">
+          <article class="feed-post-card" data-feed-post data-post-id="${escHtml(String(postId || ""))}">
             <header class="feed-post-header">
               <div class="feed-avatar">${escHtml(avatarLetter)}</div>
               <div class="feed-post-author">
                 <strong>${escHtml(author.name)}</strong>
-                <span>${escHtml([author.city, date].filter(Boolean).join(" · "))}</span>
+                <time datetime="${escHtml(String(firstDefined(post.createdAt, post.created_at, "")))}" title="${escHtml(formatAbsoluteDate(firstDefined(post.createdAt, post.created_at)))}">${escHtml(date)}</time>
               </div>
               <span class="feed-post-category">${escHtml(category)}</span>
             </header>
@@ -1597,24 +2060,41 @@ async function initFeedPage() {
               ${description ? `<p>${escHtml(description)}</p>` : ""}
             </a>
 
-            <div class="feed-post-meta">
-              <span><span data-feed-reactions-count>${reactionsCount}</span> إعجاب</span>
-              <span><span data-feed-comments-count>${commentsCount}</span> تعليق</span>
-              ${rating !== "" ? `<span>تقييم ${escHtml(String(rating))}</span>` : ""}
+            <div class="feed-post-metrics">
+              <div class="feed-rating-metric">
+                <div class="feed-rating-number"><strong>${rating.toFixed(1)}</strong><span>/ 5</span></div>
+                ${renderFractionalStars(rating, { compact: true })}
+                <span>متوسط التقييم</span>
+              </div>
+              <div class="feed-number-metric">
+                ${Icons.heart}
+                <strong data-feed-reactions-count>${reactionsCount}</strong>
+                <span>إعجاب</span>
+              </div>
+              <div class="feed-number-metric">
+                ${Icons.messageCircle}
+                <strong data-feed-comments-count>${commentsCount}</strong>
+                <span>تعليق</span>
+              </div>
+              <div class="feed-number-metric${reported ? " reported" : ""}">
+                ${Icons.flag}
+                <strong>${reportsCount === null ? (reported ? "تم" : "—") : reportsCount}</strong>
+                <span>${reportsCount === null ? "بلاغي" : "بلاغ"}</span>
+              </div>
             </div>
 
             <div class="feed-post-actions">
-              <button type="button" class="${reacted ? "active" : ""}" data-feed-like="${escHtml(String(postId || ""))}" data-reacted="${reacted}" aria-pressed="${reacted}" ${postId && !reacted ? "" : "disabled"}>
+              <button type="button" class="${reacted ? "active" : ""}" data-feed-like="${escHtml(String(postId || ""))}" data-reaction-id="${escHtml(String(reactionId || ""))}" data-reacted="${reacted}" aria-pressed="${reacted}" ${postId ? "" : "disabled"}>
                 ${Icons.heart}
-                <span data-reaction-label>${reacted ? "تم الإعجاب" : "إعجاب"}</span>
+                <span data-reaction-label>${reacted ? "إزالة الإعجاب" : "إعجاب"}</span>
               </button>
               <a href="${escHtml(postHref)}">
-                ${Icons.send}
+                ${Icons.messageCircle}
                 <span>تعليق</span>
               </a>
-              <button type="button" data-feed-report="${escHtml(String(postId || ""))}" ${postId ? "" : "disabled"}>
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-                <span>إبلاغ</span>
+              <button type="button" class="${reported ? "active report-active" : ""}" data-feed-report="${escHtml(String(postId || ""))}" data-report-id="${escHtml(String(reportId || ""))}" data-reported="${reported}" aria-pressed="${reported}" ${postId ? "" : "disabled"}>
+                ${Icons.flag}
+                <span data-report-label>${reported ? "إزالة البلاغ" : "إبلاغ"}</span>
               </button>
             </div>
           </article>
@@ -1625,40 +2105,31 @@ async function initFeedPage() {
     feedListEl.querySelectorAll("[data-feed-like]").forEach((button) => {
       button.addEventListener("click", async () => {
         const postId = button.dataset.feedLike;
-        if (!postId || button.dataset.reacted === "true") return;
+        const reacted = button.dataset.reacted === "true";
+        if (!postId) return;
+        if (reacted && !button.dataset.reactionId) {
+          showNotification(
+            "إزالة الإعجاب تحتاج أن يعيد GET /posts حقل reactionId أو أن يوفّر الخادم حذف التفاعل بمعرّف المنشور.",
+            "error",
+          );
+          return;
+        }
         setButtonLoading(button, true);
         try {
-          await API.saveReaction(postId, 1);
-          rememberReactedPost(postId);
-          setReactionButtonState(button, true);
-          const countEl = button
-            .closest("[data-feed-post]")
-            ?.querySelector("[data-feed-reactions-count]");
-          const updatedPost = await getPostFeedItem(postId).catch(() => null);
-          if (countEl && updatedPost) {
-            const currentPost = allPosts.find(
-              (post) => String(getEntityId(post)) === String(postId),
-            );
-            if (currentPost) Object.assign(currentPost, updatedPost);
-            countEl.textContent = String(
-              getPostCount(
-                updatedPost,
-                "reactionsCount",
-                "reactionCount",
-                "reactions",
-                "likesCount",
-                "likes",
-              ),
-            );
+          if (reacted) {
+            await API.deleteReaction(button.dataset.reactionId);
+            forgetReactedPost(postId);
+            showNotification("تمت إزالة الإعجاب", "success");
+          } else {
+            await API.saveReaction(postId, 1);
+            rememberReactedPost(postId);
+            showNotification("تم تسجيل الإعجاب", "success");
           }
-          showNotification("تم تسجيل الإعجاب", "success");
+          await loadPage();
         } catch (err) {
           showNotification(parseApiError(err), "error");
         } finally {
-          setButtonLoading(button, false);
-          if (button.dataset.reacted === "true") {
-            setReactionButtonState(button, true);
-          }
+          if (button.isConnected) setButtonLoading(button, false);
         }
       });
     });
@@ -1666,145 +2137,118 @@ async function initFeedPage() {
     feedListEl.querySelectorAll("[data-feed-report]").forEach((button) => {
       button.addEventListener("click", async () => {
         const postId = button.dataset.feedReport;
+        const reported = button.dataset.reported === "true";
         if (!postId) return;
-        const reason = prompt("اكتب سبب الإبلاغ عن هذا المنشور:");
-        if (!reason) return;
-        if (reason.trim().length < 8) {
-          showNotification("سبب الإبلاغ يجب أن يكون 8 أحرف على الأقل", "error");
+        if (reported && !button.dataset.reportId) {
+          showNotification(
+            "إزالة البلاغ تحتاج أن يعيد GET /posts حقل reportId أو أن يوفّر الخادم حذف البلاغ بمعرّف المنشور.",
+            "error",
+          );
           return;
         }
+        const reason = reported ? null : await requestReportReason();
+        if (!reported && !reason) return;
         setButtonLoading(button, true);
         try {
-          await API.saveReport(postId, reason.trim());
-          showNotification("تم إرسال الإبلاغ للمراجعة", "success");
+          if (reported) {
+            await API.deleteReport(button.dataset.reportId);
+            showNotification("تمت إزالة البلاغ", "success");
+          } else {
+            await API.saveReport(postId, reason);
+            showNotification("تم إرسال البلاغ للمراجعة", "success");
+          }
+          await loadPage();
         } catch (err) {
           showNotification(parseApiError(err), "error");
         } finally {
-          setButtonLoading(button, false);
+          if (button.isConnected) setButtonLoading(button, false);
         }
       });
     });
   };
 
-  const getPageTokens = (totalPages) => {
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
-    }
-
-    const pages = new Set([
-      1,
-      totalPages,
-      currentPage - 1,
-      currentPage,
-      currentPage + 1,
-    ]);
-    const sortedPages = [...pages]
-      .filter((page) => page >= 1 && page <= totalPages)
-      .sort((a, b) => a - b);
-    const tokens = [];
-
-    sortedPages.forEach((page, index) => {
-      if (index && page - sortedPages[index - 1] > 1) tokens.push("ellipsis");
-      tokens.push(page);
-    });
-
-    return tokens;
-  };
-
-  const updatePageUrl = () => {
-    const url = new URL(window.location.href);
-    if (currentPage > 1) url.searchParams.set("page", String(currentPage));
-    else url.searchParams.delete("page");
-    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  };
-
-  const renderPagination = (totalItems) => {
+  const renderPagination = () => {
     if (!paginationEl) return;
-    if (!totalItems) {
+    if (!currentPosts.length && currentPage === 1) {
       paginationEl.hidden = true;
       paginationEl.innerHTML = "";
       return;
     }
 
-    const totalPages = Math.max(1, Math.ceil(totalItems / postsPerPage));
-    const start = (currentPage - 1) * postsPerPage + 1;
-    const end = Math.min(currentPage * postsPerPage, totalItems);
+    const pageNumbers = [];
+    if (currentPage > 1) pageNumbers.push(currentPage - 1);
+    pageNumbers.push(currentPage);
+    if (hasNextPage) pageNumbers.push(currentPage + 1);
     paginationEl.hidden = false;
     paginationEl.innerHTML = `
-      <p class="feed-pagination-info">عرض ${start}-${end} من ${totalItems}</p>
+      <p class="feed-pagination-info">الصفحة ${currentPage} · ${currentPosts.length} منشور</p>
       <div class="feed-pagination-controls">
         <button type="button" class="feed-pagination-arrow" data-feed-page="previous" aria-label="الصفحة السابقة" ${currentPage === 1 ? "disabled" : ""}>
           ${Icons.chevronRight}
         </button>
         <div class="feed-pagination-pages">
-          ${getPageTokens(totalPages)
-            .map((token) =>
-              token === "ellipsis"
-                ? '<span class="feed-pagination-ellipsis" aria-hidden="true">...</span>'
-                : `<button type="button" class="feed-pagination-page${token === currentPage ? " active" : ""}" data-feed-page="${token}" ${token === currentPage ? 'aria-current="page"' : ""}>${token}</button>`,
-            )
+          ${pageNumbers
+            .map((page) => `<button type="button" class="feed-pagination-page${page === currentPage ? " active" : ""}" data-feed-page="${page}" ${page === currentPage ? 'aria-current="page"' : ""}>${page}</button>`)
             .join("")}
         </div>
-        <button type="button" class="feed-pagination-arrow" data-feed-page="next" aria-label="الصفحة التالية" ${currentPage === totalPages ? "disabled" : ""}>
+        <button type="button" class="feed-pagination-arrow" data-feed-page="next" aria-label="الصفحة التالية" ${hasNextPage ? "" : "disabled"}>
           ${Icons.chevronLeft}
         </button>
       </div>
     `;
   };
 
-  const renderCurrentPage = ({ scroll = false } = {}) => {
-    const totalPages = Math.max(
-      1,
-      Math.ceil(filteredPosts.length / postsPerPage),
-    );
-    currentPage = Math.min(Math.max(currentPage, 1), totalPages);
-    const start = (currentPage - 1) * postsPerPage;
-    renderPosts(
-      filteredPosts.slice(start, start + postsPerPage),
-      filteredPosts.length,
-    );
-    renderPagination(filteredPosts.length);
-    updatePageUrl();
+  const loadPage = async ({ scroll = false } = {}) => {
+    const version = ++requestVersion;
+    feedListEl.setAttribute("aria-busy", "true");
+    feedListEl.innerHTML = '<div class="feed-loading">جاري تحميل المنشورات...</div>';
+    if (paginationEl) paginationEl.hidden = true;
 
-    if (scroll) {
-      feedListEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    try {
+      const postsRaw = await API.getPosts(getFilterParams());
+      if (version !== requestVersion) return;
+      currentPosts = unwrapApiArray(postsRaw, ["posts"]);
+
+      if (!currentPosts.length && currentPage > 1) {
+        currentPage -= 1;
+        await loadPage({ scroll });
+        return;
+      }
+
+      hasNextPage = false;
+      if (currentPosts.length === postsPerPage) {
+        const nextRaw = await API.getPosts(
+          getFilterParams(currentPage + 1, postsPerPage),
+        );
+        if (version !== requestVersion) return;
+        hasNextPage = unwrapApiArray(nextRaw, ["posts"]).length > 0;
+      }
+
+      renderPosts(currentPosts);
+      renderPagination();
+      updateFeedUrl();
+      if (scroll) feedListEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      if (version !== requestVersion) return;
+      currentPosts = [];
+      hasNextPage = false;
+      if (feedCountEl) feedCountEl.textContent = "0";
+      feedListEl.innerHTML = `
+        <div class="feed-empty-state error">
+          <h3>تعذر تحميل المنشورات</h3>
+          <p>${escHtml(parseApiError(err))}</p>
+          <button type="button" class="btn btn-secondary btn-sm" data-feed-retry>إعادة المحاولة</button>
+        </div>`;
+      feedListEl.querySelector("[data-feed-retry]")?.addEventListener("click", () => loadPage());
+    } finally {
+      if (version === requestVersion) feedListEl.setAttribute("aria-busy", "false");
     }
-  };
-
-  const applyFeedFilters = ({ resetPage = true } = {}) => {
-    const activeCategory =
-      categoriesEl?.querySelector("[data-feed-category].active")?.dataset.feedCategory || "الكل";
-    const term = (searchInput?.value || "").trim().toLowerCase();
-    if (resetPage) currentPage = 1;
-
-    filteredPosts = allPosts.filter((post) => {
-      const category = getCategoryName(post);
-      const author = getPostAuthor(post);
-      const searchable = [
-        firstDefined(post.title, post.name, ""),
-        post.description || post.content || post.body || "",
-        category,
-        author.name,
-        author.city,
-      ]
-        .join(" ")
-        .toLowerCase();
-      return (
-        (activeCategory === "الكل" || category === activeCategory) &&
-        (!term || searchable.includes(term))
-      );
-    });
-    renderCurrentPage();
   };
 
   paginationEl?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-feed-page]");
     if (!button || button.disabled) return;
 
-    const totalPages = Math.max(
-      1,
-      Math.ceil(filteredPosts.length / postsPerPage),
-    );
     const target = button.dataset.feedPage;
     const nextPage =
       target === "previous"
@@ -1812,20 +2256,16 @@ async function initFeedPage() {
         : target === "next"
           ? currentPage + 1
           : Number(target);
-    if (!Number.isInteger(nextPage) || nextPage < 1 || nextPage > totalPages) {
+    if (!Number.isInteger(nextPage) || nextPage < 1) {
       return;
     }
 
     currentPage = nextPage;
-    renderCurrentPage({ scroll: true });
+    loadPage({ scroll: true });
   });
 
-  feedListEl.innerHTML =
-    '<div class="feed-loading">جاري تحميل المنشورات...</div>';
-
   try {
-    const [postsRaw, categoriesRaw, profile] = await Promise.all([
-      API.getPosts(),
+    const [categoriesRaw, profile] = await Promise.all([
       API.getCategories().catch(() => []),
       API.getProfile().catch(() => getStoredUser()),
     ]);
@@ -1838,19 +2278,35 @@ async function initFeedPage() {
       });
     }
 
-    allPosts = unwrapApiArray(postsRaw, ["posts"]);
-    const postCategories = allPosts.map((post) => getCategoryName(post));
-    const apiCategories = unwrapApiArray(categoriesRaw, ["categories"]).map((category) =>
-      firstDefined(category?.name, category?.title, category?.category, category),
-    );
-
-    renderCategories([...apiCategories, ...postCategories]);
-    const initialSearch = new URLSearchParams(window.location.search).get("q");
-    if (searchInput && initialSearch) {
-      searchInput.value = initialSearch;
+    const initialSearch = initialParams.get("search") || initialParams.get("q") || "";
+    if (searchInput) searchInput.value = initialSearch;
+    if (searchInSelect && ["title", "description"].includes(initialParams.get("searchIn"))) {
+      searchInSelect.value = initialParams.get("searchIn");
     }
-    applyFeedFilters({ resetPage: false });
-    searchInput?.addEventListener("input", () => applyFeedFilters());
+
+    if (categorySelect) {
+      const categories = unwrapApiArray(categoriesRaw, ["categories"]);
+      categorySelect.innerHTML = `<option value="">كل التصنيفات</option>${categories
+        .map((category) => {
+          const name = firstDefined(category?.name, category?.title, category?.category, category);
+          return `<option value="${escHtml(String(name || ""))}">${escHtml(String(name || ""))}</option>`;
+        })
+        .join("")}`;
+      categorySelect.value = initialParams.get("category") || "";
+    }
+
+    filterForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      currentPage = 1;
+      loadPage({ scroll: true });
+    });
+    filterForm?.addEventListener("reset", () => {
+      window.setTimeout(() => {
+        currentPage = 1;
+        loadPage({ scroll: true });
+      }, 0);
+    });
+    await loadPage();
   } catch (err) {
     feedListEl.innerHTML =
       '<div class="feed-empty-state error"><h3>تعذر تحميل المنشورات</h3><p>تحقق من الاتصال أو حاول لاحقا.</p></div>';
@@ -2869,6 +3325,8 @@ const Icons = {
   user: `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
   star: `<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
   heart: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`,
+  messageCircle: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+  flag: `<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`,
   send: `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`,
   trash2: `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
   edit: `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
@@ -2903,6 +3361,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   initLoginPage();
   initRegisterPage();
   initProfilePage();
+  initPublicProfilePage();
   initProfileEdit();
   initAddReviewPage();
   initReviewDetailPage();

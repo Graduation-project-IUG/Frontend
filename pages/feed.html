@@ -90,25 +90,51 @@
                 </div>
               </div>
 
-              <div class="feed-tools">
-                <div class="filter-search" style="max-width: none">
-                  <input id="feedSearch" type="search" placeholder="ابحث في المنشورات..." />
+              <form class="feed-tools feed-filter-form" id="feedFilterForm">
+                <div class="feed-filter-search">
                   <svg
-                    width="16"
-                    height="16"
+                    width="18"
+                    height="18"
                     fill="none"
                     stroke="currentColor"
                     stroke-width="2"
                     viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
                     <circle cx="11" cy="11" r="8" />
                     <path d="m21 21-4.35-4.35" />
                   </svg>
+                  <input
+                    id="feedSearch"
+                    name="search"
+                    type="search"
+                    aria-label="نص البحث"
+                    placeholder="ابحث في المنشورات..."
+                  />
                 </div>
-                <div class="feed-categories" id="feedCategories">
-                  <button type="button" class="feed-category-chip active">الكل</button>
-                </div>
-              </div>
+                <select id="feedSearchIn" name="searchIn" class="feed-filter-select" aria-label="البحث في">
+                  <option value="">العنوان والوصف</option>
+                  <option value="title">العنوان</option>
+                  <option value="description">الوصف</option>
+                </select>
+                <select id="feedCategory" name="category" class="feed-filter-select" aria-label="التصنيف">
+                  <option value="">كل التصنيفات</option>
+                </select>
+                <button class="btn btn-primary feed-filter-submit" type="submit">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                  </svg>
+                  <span>بحث</span>
+                </button>
+                <button class="feed-filter-reset" id="feedFilterReset" type="reset" aria-label="مسح البحث والتصفية" title="مسح البحث والتصفية">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 6h18" />
+                    <path d="m19 6-.9 14H5.9L5 6" />
+                    <path d="M8 6V3h8v3" />
+                  </svg>
+                </button>
+              </form>
 
               <div
                 style="
@@ -128,11 +154,11 @@
                   </p>
                 </div>
                 <span style="color: var(--gray-500); font-size: 0.875rem">
-                  <strong id="feedPostsCount">0</strong> منشور
+                  <strong id="feedPostsCount">0</strong> منشور في هذه الصفحة
                 </span>
               </div>
 
-              <div id="feedPostsList" class="feed-posts-list">
+              <div id="feedPostsList" class="feed-posts-list" aria-live="polite">
                 <div class="feed-loading">جاري تحميل المنشورات...</div>
               </div>
               <nav

@@ -1658,6 +1658,7 @@ textarea.form-input {
 .feed-tools {
   display: grid;
   gap: 0.75rem;
+  min-width: 0;
   background: var(--white);
   border: 1px solid var(--gray-100);
   border-radius: var(--radius-lg);
@@ -1667,8 +1668,26 @@ textarea.form-input {
 
 @media (min-width: 700px) {
   .feed-tools {
-    grid-template-columns: minmax(240px, 1fr) minmax(140px, 0.48fr) minmax(150px, 0.52fr) auto 42px;
+    grid-template-columns: minmax(0, 1fr) minmax(140px, 0.5fr);
     align-items: center;
+  }
+
+  .feed-filter-search {
+    grid-column: 1 / -1;
+  }
+
+  .feed-filter-reset {
+    justify-self: start;
+  }
+}
+
+@media (min-width: 900px) {
+  .feed-tools {
+    grid-template-columns: minmax(220px, 1fr) minmax(130px, 0.48fr) minmax(140px, 0.52fr) auto 42px;
+  }
+
+  .feed-filter-search {
+    grid-column: auto;
   }
 }
 
@@ -1769,6 +1788,7 @@ textarea.form-input {
 .feed-posts-list {
   display: grid;
   gap: 1rem;
+  min-width: 0;
 }
 
 .feed-post-card {

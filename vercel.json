@@ -10,15 +10,15 @@
   "rewrites": [
     {
       "source": "/api-docs/",
-      "destination": "https://graduation-project-1-oqyb.onrender.com/api-docs/"
+      "destination": "https://graduation-project-s30r.onrender.com/api-docs/"
     },
     {
       "source": "/api-docs/:path*",
-      "destination": "https://graduation-project-1-oqyb.onrender.com/api-docs/:path*"
+      "destination": "https://graduation-project-s30r.onrender.com/api-docs/:path*"
     },
     {
       "source": "/api/:path*",
-      "destination": "https://graduation-project-1-oqyb.onrender.com/:path*"
+      "destination": "https://graduation-project-s30r.onrender.com/:path*"
     }
   ]
 }

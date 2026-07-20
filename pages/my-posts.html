@@ -276,13 +276,19 @@
           </div>
 
           <!-- Posts List - loaded dynamically from API -->
-          <div id="postsList">
+          <div id="postsList" class="feed-posts-list">
             <p
               style="text-align: center; color: var(--gray-400); padding: 2rem"
             >
               جاري التحميل...
             </p>
           </div>
+          <nav
+            id="myPostsPagination"
+            class="feed-pagination"
+            aria-label="صفحات منشوراتي"
+            hidden
+          ></nav>
         </div>
       </main>
     </div>

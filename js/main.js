@@ -1714,125 +1714,234 @@ async function initMyPostsPage() {
   if (!postsListEl) return;
 
   const bioEl = document.getElementById("userBio");
-  postsListEl.innerHTML =
-    '<p style="text-align:center;color:var(--gray-400);padding:2rem;">جاري التحميل...</p>';
+  const paginationEl = document.getElementById("myPostsPagination");
+  const filterContainer = document.getElementById("filterTags");
+  const searchInput = document.getElementById("myPostsSearch");
+  const postsPerPage = 10;
+  const params = new URLSearchParams(window.location.search);
+  const requestedPage = Number(params.get("page"));
+  let currentPage = Number.isInteger(requestedPage) && requestedPage > 0
+    ? requestedPage
+    : 1;
+  let currentPosts = [];
+  let hasNextPage = false;
+  let totalPages = null;
+  let totalPosts = null;
+  let requestVersion = 0;
 
-  try {
-    const [postsRaw, profile] = await Promise.all([
-      API.getMyPosts(),
-      API.getProfile().catch(() => null),
-    ]);
+  const updateUrl = () => {
+    const url = new URL(window.location.href);
+    if (currentPage > 1) url.searchParams.set("page", String(currentPage));
+    else url.searchParams.delete("page");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+  };
 
-    if (profile) {
-      setStoredUser(profile);
-      updateNavbarUser(profile);
-      if (bioEl) bioEl.textContent = profile.bio || "لا توجد نبذة شخصية.";
-    }
+  const applyMyPostsFilters = () => {
+    const activeFilter =
+      filterContainer?.querySelector(".filter-tag.active")?.dataset.category || "الكل";
+    const term = (searchInput?.value || "").trim().toLowerCase();
+    postsListEl.querySelectorAll("[data-my-post]").forEach((card) => {
+      const category = card.dataset.category || "";
+      const searchable = card.textContent.toLowerCase();
+      const matchesCategory = activeFilter === "الكل" || category === activeFilter;
+      const matchesSearch = !term || searchable.includes(term);
+      card.hidden = !(matchesCategory && matchesSearch);
+    });
+  };
 
-    const posts = unwrapApiArray(postsRaw, ["posts"]);
+  const renderFilters = (posts) => {
+    if (!filterContainer) return;
+    const categories = [...new Set(posts.map((post) => getCategoryName(post)))];
+    filterContainer.innerHTML = ["الكل", ...categories]
+      .map((category, index) =>
+        `<button type="button" class="filter-tag${index === 0 ? " active" : ""}" data-category="${escHtml(category)}">${escHtml(category)}</button>`,
+      )
+      .join("");
+  };
 
-    if (posts.length === 0) {
-      postsListEl.innerHTML =
-        '<p style="text-align:center;color:var(--gray-400);padding:2rem;">لا توجد مراجعات بعد. <a href="add-post.html">أضف مراجعة الآن</a></p>';
+  const renderPosts = (posts) => {
+    if (!posts.length) {
+      postsListEl.innerHTML = `
+        <div class="feed-empty-state">
+          <h3>لا توجد مراجعات بعد</h3>
+          <p><a href="add-post.html">أضف مراجعتك الأولى</a></p>
+        </div>`;
+      renderFilters([]);
       return;
     }
 
-    postsListEl.innerHTML = posts
-      .map(
-        (post) => {
-          const postId = getEntityId(post);
-          return `
-      <div class="post-card" id="post-${escHtml(String(postId || ""))}">
-        <div class="post-card-body">
-          <div class="post-card-header">
-            <div class="post-badges">
-              <span class="badge badge-blue">${escHtml(getCategoryName(post))}</span>
+    postsListEl.innerHTML = posts.map((post) => {
+      const postId = getEntityId(post);
+      const category = getCategoryName(post);
+      const href = postId ? `post.html?id=${encodeURIComponent(String(postId))}` : "#";
+      const rating = Number(firstDefined(post.averageRating, post.avgRating, post.rating, 0)) || 0;
+      const reactionsCount = getPostCount(post, "reactionsCount", "reactionCount", "reactions", "likesCount", "likes");
+      const commentsCount = getPostCount(post, "commentsCount", "commentCount", "comments");
+      const reportsCount = getPostCount(post, "reportsCount", "reportCount", "reports");
+      const description = truncateText(post.description || post.content || post.body || "", 280);
+      return `
+        <article class="feed-post-card my-post-card" id="post-${escHtml(String(postId || ""))}" data-my-post data-category="${escHtml(category)}">
+          <header class="feed-post-header">
+            <div class="feed-post-author">
+              <time datetime="${escHtml(String(firstDefined(post.createdAt, post.created_at, "")))}" title="${escHtml(formatAbsoluteDate(firstDefined(post.createdAt, post.created_at)))}">${escHtml(getPostDate(post))}</time>
             </div>
+            <span class="feed-post-category">${escHtml(category)}</span>
             <div class="post-actions">
-              <button class="edit-btn" data-post-id="${escHtml(String(postId || ""))}" aria-label="تعديل المنشور" title="تعديل المنشور" ${postId ? "" : "disabled"}>
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              </button>
-              <button class="delete" data-post-id="${escHtml(String(postId || ""))}" aria-label="حذف المنشور" title="حذف المنشور" ${postId ? "" : "disabled"}>
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-              </button>
+              <button type="button" class="edit-btn" data-post-id="${escHtml(String(postId || ""))}" aria-label="تعديل المنشور" title="تعديل المنشور" ${postId ? "" : "disabled"}>${Icons.edit}</button>
+              <button type="button" class="delete" data-post-id="${escHtml(String(postId || ""))}" aria-label="حذف المنشور" title="حذف المنشور" ${postId ? "" : "disabled"}>${Icons.trash2}</button>
             </div>
-          </div>
-          <a href="${postId ? `post.html?id=${escHtml(encodeURIComponent(String(postId)))}` : "#"}" style="display:block;margin-bottom:0.5rem;">
-            <h3 style="font-size:1.125rem;font-weight:700;color:var(--gray-900);">${escHtml(post.title || "")}</h3>
+          </header>
+          <a class="feed-post-content" href="${escHtml(href)}">
+            <h2>${escHtml(firstDefined(post.title, "منشور بدون عنوان"))}</h2>
+            ${description ? `<p>${escHtml(description)}</p>` : ""}
           </a>
-          <p style="color:var(--gray-600);font-size:0.875rem;line-height:1.6;margin-bottom:1rem;" class="line-clamp-3">${escHtml(post.description || "")}</p>
+          <div class="feed-post-metrics compact">
+            <div class="feed-rating-metric">
+              <div class="feed-rating-number"><strong>${rating.toFixed(1)}</strong><span>/ 5</span></div>
+              ${renderFractionalStars(rating, { compact: true })}
+              <span>متوسط التقييم</span>
+            </div>
+            <div class="feed-number-metric">${Icons.heart}<strong>${reactionsCount}</strong><span>إعجاب</span></div>
+            <div class="feed-number-metric">${Icons.messageCircle}<strong>${commentsCount}</strong><span>تعليق</span></div>
+            <div class="feed-number-metric">${Icons.flag}<strong>${reportsCount}</strong><span>بلاغ</span></div>
+          </div>
+        </article>`;
+    }).join("");
+    renderFilters(posts);
+    applyMyPostsFilters();
+  };
+
+  const renderPagination = () => {
+    if (!paginationEl) return;
+    if (!currentPosts.length && currentPage === 1) {
+      paginationEl.hidden = true;
+      paginationEl.innerHTML = "";
+      return;
+    }
+    const pageItems = getCondensedPageItems(currentPage, totalPages, hasNextPage);
+    paginationEl.hidden = false;
+    paginationEl.innerHTML = `
+      <p class="feed-pagination-info">الصفحة ${currentPage}${totalPages ? ` من ${totalPages}` : ""}${totalPosts !== null ? ` · ${totalPosts} منشور` : ` · ${currentPosts.length} منشور`}</p>
+      <div class="feed-pagination-controls">
+        <button type="button" class="feed-pagination-arrow" data-my-posts-page="previous" aria-label="الصفحة السابقة" ${currentPage === 1 ? "disabled" : ""}>${Icons.chevronRight}</button>
+        <div class="feed-pagination-pages">
+          ${pageItems.map((page) => page === null
+            ? '<span class="feed-pagination-ellipsis" aria-hidden="true">…</span>'
+            : `<button type="button" class="feed-pagination-page${page === currentPage ? " active" : ""}" data-my-posts-page="${page}" ${page === currentPage ? 'aria-current="page"' : ""}>${page}</button>`).join("")}
         </div>
-      </div>
-    `;
-        },
-      )
-      .join("");
+        <button type="button" class="feed-pagination-arrow" data-my-posts-page="next" aria-label="الصفحة التالية" ${hasNextPage ? "" : "disabled"}>${Icons.chevronLeft}</button>
+      </div>`;
+  };
 
-    postsListEl
-      .querySelectorAll(".post-actions .delete[data-post-id]")
-      .forEach((btn) => {
-        btn.addEventListener("click", async () => {
-          const postId = btn.dataset.postId;
-          if (!confirm("هل أنت متأكد من حذف هذا المنشور؟")) return;
-          try {
-            await API.deletePost(postId);
-            document.getElementById(`post-${postId}`)?.remove();
-            showNotification("تم حذف المنشور بنجاح", "success");
-          } catch (err) {
-            showNotification(
-              err.status === 401
-                ? "يجب تسجيل الدخول أولاً"
-                : parseApiError(err),
-              "error",
-            );
-          }
-        });
+  const loadPosts = async ({ scroll = false } = {}) => {
+    const version = ++requestVersion;
+    postsListEl.setAttribute("aria-busy", "true");
+    postsListEl.innerHTML = '<div class="feed-loading">جاري تحميل المنشورات...</div>';
+    if (paginationEl) paginationEl.hidden = true;
+    try {
+      const postsRaw = await API.getMyPosts({
+        page: currentPage,
+        limit: postsPerPage,
       });
-
-    postsListEl
-      .querySelectorAll(".post-actions .edit-btn[data-post-id]")
-      .forEach((btn) => {
-        btn.addEventListener("click", () => {
-          window.location.href = `edit-post.html?id=${btn.dataset.postId}`;
-        });
+      if (version !== requestVersion) return;
+      currentPosts = unwrapApiArray(postsRaw, ["posts"]);
+      const pagination = getPaginationData(postsRaw, {
+        page: currentPage,
+        limit: postsPerPage,
+        hasNext: currentPosts.length === postsPerPage,
       });
+      currentPage = pagination.page;
+      totalPages = pagination.totalPages;
+      totalPosts = pagination.total;
 
-    const filterContainer = document.getElementById("filterTags");
-    const searchInput = document.getElementById("myPostsSearch");
-    if (filterContainer) {
-      const categories = [...new Set(posts.map((post) => getCategoryName(post)))];
-      filterContainer.innerHTML = ["الكل", ...categories]
-        .map(
-          (category, index) =>
-            `<button type="button" class="filter-tag${index === 0 ? " active" : ""}">${escHtml(category)}</button>`,
-        )
-        .join("");
+      if (!currentPosts.length && currentPage > 1) {
+        currentPage = totalPages && totalPages < currentPage
+          ? totalPages
+          : currentPage - 1;
+        await loadPosts({ scroll });
+        return;
+      }
+
+      hasNextPage = pagination.hasNext;
+      if (totalPages === null && currentPosts.length === postsPerPage) {
+        const nextRaw = await API.getMyPosts({
+          page: currentPage + 1,
+          limit: postsPerPage,
+        });
+        if (version !== requestVersion) return;
+        hasNextPage = unwrapApiArray(nextRaw, ["posts"]).length > 0;
+      }
+
+      renderPosts(currentPosts);
+      renderPagination();
+      updateUrl();
+      if (scroll) postsListEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      if (version !== requestVersion) return;
+      currentPosts = [];
+      hasNextPage = false;
+      totalPages = null;
+      totalPosts = null;
+      postsListEl.innerHTML = `
+        <div class="feed-empty-state error">
+          <h3>تعذّر تحميل المنشورات</h3>
+          <p>${escHtml(parseApiError(err))}</p>
+          <button type="button" class="btn btn-secondary btn-sm" data-my-posts-retry>إعادة المحاولة</button>
+        </div>`;
+      postsListEl.querySelector("[data-my-posts-retry]")?.addEventListener("click", () => loadPosts());
+    } finally {
+      if (version === requestVersion) postsListEl.setAttribute("aria-busy", "false");
     }
-    const applyMyPostsFilters = () => {
-      const activeFilter =
-        filterContainer?.querySelector(".filter-tag.active")?.textContent.trim() ||
-        "الكل";
-      const term = (searchInput?.value || "").trim().toLowerCase();
-      postsListEl.querySelectorAll(".post-card").forEach((card) => {
-        const category = card.querySelector(".badge")?.textContent.trim() || "";
-        const searchable = card.textContent.toLowerCase();
-        const matchesCategory = activeFilter === "الكل" || category === activeFilter;
-        const matchesSearch = !term || searchable.includes(term);
-        card.style.display = matchesCategory && matchesSearch ? "" : "none";
-      });
-    };
-    if (filterContainer) {
-      filterContainer.querySelectorAll(".filter-tag").forEach((tag) => {
-        tag.addEventListener("click", () => {
-          filterContainer
-            .querySelectorAll(".filter-tag")
-            .forEach((t) => t.classList.remove("active"));
-          tag.classList.add("active");
-          applyMyPostsFilters();
-        });
-      });
+  };
+
+  postsListEl.addEventListener("click", async (event) => {
+    const editButton = event.target.closest(".edit-btn[data-post-id]");
+    if (editButton) {
+      window.location.href = `edit-post.html?id=${encodeURIComponent(editButton.dataset.postId)}`;
+      return;
     }
-    if (searchInput) searchInput.addEventListener("input", applyMyPostsFilters);
+    const deleteButton = event.target.closest(".delete[data-post-id]");
+    if (!deleteButton || !confirm("هل أنت متأكد من حذف هذا المنشور؟")) return;
+    setButtonLoading(deleteButton, true);
+    try {
+      await API.deletePost(deleteButton.dataset.postId);
+      showNotification("تم حذف المنشور بنجاح", "success");
+      await loadPosts();
+    } catch (err) {
+      showNotification(err.status === 401 ? "يجب تسجيل الدخول أولاً" : parseApiError(err), "error");
+      setButtonLoading(deleteButton, false);
+    }
+  });
+
+  paginationEl?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-my-posts-page]");
+    if (!button || button.disabled) return;
+    const target = button.dataset.myPostsPage;
+    const nextPage = target === "previous"
+      ? currentPage - 1
+      : target === "next"
+        ? currentPage + 1
+        : Number(target);
+    if (!Number.isInteger(nextPage) || nextPage < 1) return;
+    currentPage = nextPage;
+    loadPosts({ scroll: true });
+  });
+
+  filterContainer?.addEventListener("click", (event) => {
+    const tag = event.target.closest(".filter-tag[data-category]");
+    if (!tag) return;
+    filterContainer.querySelectorAll(".filter-tag").forEach((item) => item.classList.remove("active"));
+    tag.classList.add("active");
+    applyMyPostsFilters();
+  });
+  searchInput?.addEventListener("input", applyMyPostsFilters);
+
+  try {
+    const profile = await API.getProfile();
+    setStoredUser(profile);
+    updateNavbarUser(profile);
+    if (bioEl) bioEl.textContent = profile.bio || "لا توجد نبذة شخصية.";
+    await loadPosts();
   } catch (err) {
     if (err.status === 401) {
       showNotification("يجب تسجيل الدخول أولاً", "error");
@@ -1840,8 +1949,7 @@ async function initMyPostsPage() {
         window.location.href = "login.html";
       }, 1500);
     } else {
-      postsListEl.innerHTML =
-        '<p style="text-align:center;color:var(--danger);padding:2rem;">تعذّر تحميل المنشورات. الرجاء المحاولة لاحقاً.</p>';
+      postsListEl.innerHTML = '<div class="feed-empty-state error"><h3>تعذّر تحميل الصفحة</h3><p>الرجاء المحاولة لاحقاً.</p></div>';
     }
   }
 }

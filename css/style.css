@@ -1830,6 +1830,18 @@ textarea.form-input {
   box-shadow: var(--shadow);
 }
 
+.my-post-card .post-actions {
+  flex: 0 0 auto;
+}
+
+.my-post-card .post-actions button {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .feed-post-header {
   display: flex;
   align-items: center;
@@ -2088,6 +2100,14 @@ textarea.form-input {
 @media (max-width: 520px) {
   .feed-post-header {
     align-items: flex-start;
+  }
+
+  .my-post-card .feed-post-header {
+    flex-wrap: wrap;
+  }
+
+  .my-post-card .feed-post-author {
+    flex: 1 0 100%;
   }
 
   .feed-post-category {

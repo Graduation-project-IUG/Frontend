@@ -119,6 +119,10 @@ const API = {
     });
   },
   getPost: (id) => apiFetch(`/post/${id}`),
+  getPostDetails: (id, params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return apiFetch(`/post/${id}/details${q ? "?" + q : ""}`);
+  },
   updatePost: (id, data) =>
     apiFetch(`/post/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deletePost: (id) => apiFetch(`/post/${id}`, { method: "DELETE" }),
@@ -157,6 +161,8 @@ const API = {
       body: JSON.stringify({ reaction }),
     }),
   deleteReaction: (id) => apiFetch(`/reaction/${id}`, { method: "DELETE" }),
+  deletePostReaction: (postId) =>
+    apiFetch(`/reaction/post/${postId}`, { method: "DELETE" }),
 
   // Reports
   saveReport: (post_id, reason) =>
@@ -171,6 +177,8 @@ const API = {
       body: JSON.stringify({ reason }),
     }),
   deleteReport: (id) => apiFetch(`/report/${id}`, { method: "DELETE" }),
+  deletePostReport: (postId) =>
+    apiFetch(`/report/post/${postId}`, { method: "DELETE" }),
 
   // Admin – Users
   getUsers: () => apiFetch("/users"),
@@ -307,27 +315,6 @@ function forgetReactedPost(postId, user = getStoredUser()) {
   const reactedIds = getStoredReactedPostIds(user);
   reactedIds.delete(id);
   saveStoredReactedPostIds(reactedIds, user);
-}
-
-function getActionRecordId(post, type) {
-  if (!post || typeof post !== "object") return null;
-  const isReaction = type === "reaction";
-  const keys = isReaction
-    ? ["reactionId", "reaction_id", "currentUserReactionId", "userReactionId"]
-    : ["reportId", "report_id", "currentUserReportId", "userReportId"];
-  const nestedKeys = isReaction
-    ? ["currentUserReaction", "userReaction", "myReaction"]
-    : ["currentUserReport", "userReport", "myReport"];
-
-  for (const key of keys) {
-    if (post[key] !== undefined && post[key] !== null) return post[key];
-  }
-  for (const key of nestedKeys) {
-    if (post[key] && typeof post[key] === "object" && post[key].id != null) {
-      return post[key].id;
-    }
-  }
-  return null;
 }
 
 function setReactionButtonState(button, reacted) {
@@ -751,6 +738,69 @@ function unwrapApiArray(payload, preferredKeys = []) {
   return [];
 }
 
+function getPaginationData(payload, fallback = {}) {
+  const source = firstDefined(
+    payload?.pagination,
+    payload?.data?.pagination,
+    payload?.meta?.pagination,
+    {},
+  );
+  const positiveInteger = (value, fallbackValue = null) => {
+    const number = Number(value);
+    return Number.isInteger(number) && number > 0 ? number : fallbackValue;
+  };
+  const page = positiveInteger(
+    firstDefined(source.page, source.currentPage, source.current),
+    positiveInteger(fallback.page, 1),
+  );
+  const limit = positiveInteger(
+    firstDefined(source.limit, source.perPage, source.pageSize),
+    positiveInteger(fallback.limit),
+  );
+  const totalValue = firstDefined(
+    source.total,
+    source.totalItems,
+    source.totalPosts,
+    source.totalRecords,
+    source.count,
+  );
+  const total = Number.isFinite(Number(totalValue)) ? Number(totalValue) : null;
+  const totalPages = positiveInteger(
+    firstDefined(source.totalPages, source.pages, source.pageCount),
+    total !== null && limit ? Math.max(1, Math.ceil(total / limit)) : null,
+  );
+  const hasNext =
+    typeof firstDefined(source.hasNext, source.hasNextPage) === "boolean"
+      ? firstDefined(source.hasNext, source.hasNextPage)
+      : totalPages !== null
+        ? page < totalPages
+        : Boolean(fallback.hasNext);
+  const hasPrevious =
+    typeof firstDefined(source.hasPrevious, source.hasPreviousPage, source.hasPrev) === "boolean"
+      ? firstDefined(source.hasPrevious, source.hasPreviousPage, source.hasPrev)
+      : page > 1;
+
+  return { page, limit, total, totalPages, hasNext, hasPrevious };
+}
+
+function getCondensedPageItems(currentPage, totalPages, hasNext = false) {
+  if (!Number.isInteger(totalPages) || totalPages < 1) {
+    const pages = [currentPage - 1, currentPage, hasNext ? currentPage + 1 : null]
+      .filter((page) => Number.isInteger(page) && page > 0);
+    return [...new Set(pages)];
+  }
+
+  const pages = [...new Set([1, currentPage - 1, currentPage, currentPage + 1, totalPages])]
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
+  const items = [];
+  pages.forEach((page, index) => {
+    if (index > 0 && page - pages[index - 1] > 1) items.push(null);
+    items.push(page);
+  });
+  return items;
+}
+
 function getEntityId(entity) {
   return firstDefined(entity?.id, entity?._id, entity?.post_id, entity?.postId);
 }
@@ -858,16 +908,10 @@ function renderFractionalStars(ratingValue, { compact = false } = {}) {
 }
 
 async function getPostFeedItem(postId) {
-  const post = await API.getPost(postId);
-  const postsRaw = await API.getPosts({
-    page: 1,
-    limit: 10,
-    search: post.title,
-    searchIn: "title",
-  });
-  return unwrapApiArray(postsRaw, ["posts"]).find(
-    (post) => String(getEntityId(post)) === String(postId),
-  ) || post;
+  return API.getPostDetails(postId, {
+    commentsPage: 1,
+    commentsLimit: 1,
+  }).catch(() => API.getPost(postId));
 }
 
 function truncateText(text, maxLength = 220) {
@@ -1220,6 +1264,9 @@ async function initReviewDetailPage() {
   const detailCommentForm = document.getElementById("commentForm");
   const commentsBody = detailCommentForm?.closest(".card-body");
   const commentsHeading = commentsBody?.querySelector("h3");
+  const commentsPaginationEl = document.getElementById("postCommentsPagination");
+  const commentsPerPage = 10;
+  let currentCommentsPage = 1;
   const renderCommentStarsHtml = (ratingValue) =>
     Array.from(
       { length: 5 },
@@ -1229,11 +1276,14 @@ async function initReviewDetailPage() {
   const normalizeComment = (comment) => {
     const author = comment.user || comment.author || comment.owner || {};
     return {
+      id: firstDefined(comment.id, comment._id),
+      userId: firstDefined(author.id, author.userId, comment.userId, comment.user_id),
       content: comment.content || comment.comment || comment.text || "",
       rating: Number(comment.rating || comment.rate || 0) || 0,
       authorName:
         author.full_name ||
         author.name ||
+        comment.full_name ||
         comment.authorName ||
         comment.user_name ||
         "مستخدم",
@@ -1242,14 +1292,39 @@ async function initReviewDetailPage() {
   };
   const extractComments = (source) => {
     const candidates = [
+      source?.comments?.items,
       source?.comments,
       source?.reviews,
+      source?.data?.comments?.items,
       source?.data?.comments,
+      source?.post?.comments?.items,
       source?.post?.comments,
     ];
     return candidates.find(Array.isArray) || [];
   };
-  const renderComments = (comments, totalCount = comments.length) => {
+  const renderCommentsPagination = (pagination) => {
+    if (!commentsPaginationEl) return;
+    const { page, totalPages, hasNext, hasPrevious, total } = pagination;
+    if (totalPages === 1 && !hasPrevious && !hasNext) {
+      commentsPaginationEl.hidden = true;
+      commentsPaginationEl.innerHTML = "";
+      return;
+    }
+    const pageItems = getCondensedPageItems(page, totalPages, hasNext);
+    commentsPaginationEl.hidden = false;
+    commentsPaginationEl.innerHTML = `
+      <p class="feed-pagination-info">الصفحة ${page}${totalPages ? ` من ${totalPages}` : ""}${total !== null ? ` · ${total} تعليق` : ""}</p>
+      <div class="feed-pagination-controls">
+        <button type="button" class="feed-pagination-arrow" data-comments-page="previous" aria-label="صفحة التعليقات السابقة" ${hasPrevious ? "" : "disabled"}>${Icons.chevronRight}</button>
+        <div class="feed-pagination-pages">
+          ${pageItems.map((item) => item === null
+            ? '<span class="feed-pagination-ellipsis" aria-hidden="true">…</span>'
+            : `<button type="button" class="feed-pagination-page${item === page ? " active" : ""}" data-comments-page="${item}" ${item === page ? 'aria-current="page"' : ""}>${item}</button>`).join("")}
+        </div>
+        <button type="button" class="feed-pagination-arrow" data-comments-page="next" aria-label="صفحة التعليقات التالية" ${hasNext ? "" : "disabled"}>${Icons.chevronLeft}</button>
+      </div>`;
+  };
+  const renderComments = (comments, totalCount = comments.length, pagination = null) => {
     if (!commentsBody || !detailCommentForm) return;
     commentsBody
       .querySelectorAll(".comment-item, .comments-empty")
@@ -1260,12 +1335,9 @@ async function initReviewDetailPage() {
     if (!comments.length) {
       detailCommentForm.insertAdjacentHTML(
         "afterend",
-        `<p class="comments-empty" style="text-align:center;color:var(--gray-400);padding:1rem 0;">${
-          totalCount > 0
-            ? "لا توفر واجهة الخادم الحالية نصوص التعليقات لعرضها."
-            : "لا توجد تعليقات بعد."
-        }</p>`,
+        `<p class="comments-empty" style="text-align:center;color:var(--gray-400);padding:1rem 0;">${totalCount > 0 ? "لا توجد تعليقات في هذه الصفحة." : "لا توجد تعليقات بعد."}</p>`,
       );
+      if (pagination) renderCommentsPagination(pagination);
       return;
     }
     detailCommentForm.insertAdjacentHTML(
@@ -1276,35 +1348,80 @@ async function initReviewDetailPage() {
           const date = comment.createdAt
             ? new Date(comment.createdAt).toLocaleDateString("ar-EG")
             : "";
+          const profileHref = comment.userId
+            ? `user-profile.html?id=${encodeURIComponent(String(comment.userId))}`
+            : null;
           return `<div class="comment-item">
             <img src="../images/avatar-saeed.jpg" alt="${escHtml(comment.authorName)}">
             <div class="comment-item-body">
               <div class="comment-item-header">
                 <div class="author">
-                  <span class="name">${escHtml(comment.authorName)}</span>
+                  ${profileHref ? `<a class="name" href="${escHtml(profileHref)}">${escHtml(comment.authorName)}</a>` : `<span class="name">${escHtml(comment.authorName)}</span>`}
                   <div class="stars">${renderCommentStarsHtml(comment.rating)}</div>
                 </div>
                 <span class="date">${escHtml(date)}</span>
               </div>
               <p>${escHtml(comment.content)}</p>
-              <button class="comment-like-btn" type="button">أعجبني</button>
             </div>
           </div>`;
         })
         .join(""),
     );
+    if (pagination) renderCommentsPagination(pagination);
   };
-  const loadPostComments = async (post, details, totalCount = 0) => {
-    let comments = extractComments(post);
-    if (!comments.length && details) comments = extractComments(details);
-    if (!comments.length) {
-      try {
-        const details = await apiFetch(`/post/${postId}/details`);
-        comments = extractComments(details);
-      } catch {}
+  const loadPostComments = async (page = 1, details = null) => {
+    const source = details || await API.getPostDetails(postId, {
+      commentsPage: page,
+      commentsLimit: commentsPerPage,
+    });
+    const comments = extractComments(source);
+    const commentsPayload = firstDefined(
+      source?.comments,
+      source?.data?.comments,
+      source?.post?.comments,
+      {},
+    );
+    const totalCount = getPostCount(source, "commentsCount", "commentCount", "comments");
+    const pagination = getPaginationData(commentsPayload, {
+      page,
+      limit: commentsPerPage,
+      hasNext: comments.length === commentsPerPage,
+    });
+    pagination.total = pagination.total ?? Math.max(totalCount, comments.length);
+    if (pagination.total !== null && comments.length >= pagination.total) {
+      pagination.page = 1;
+      pagination.totalPages = 1;
+      pagination.hasNext = false;
+      pagination.hasPrevious = false;
+    } else if (pagination.totalPages === null && pagination.total !== null) {
+      pagination.totalPages = Math.max(1, Math.ceil(pagination.total / commentsPerPage));
+      pagination.hasNext = pagination.page < pagination.totalPages;
     }
-    renderComments(comments, Math.max(totalCount, comments.length));
+    currentCommentsPage = pagination.page;
+    renderComments(comments, pagination.total, pagination);
+    return source;
   };
+
+  commentsPaginationEl?.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-comments-page]");
+    if (!button || button.disabled) return;
+    const target = button.dataset.commentsPage;
+    const nextPage = target === "previous"
+      ? currentCommentsPage - 1
+      : target === "next"
+        ? currentCommentsPage + 1
+        : Number(target);
+    if (!Number.isInteger(nextPage) || nextPage < 1) return;
+    commentsPaginationEl.setAttribute("aria-busy", "true");
+    try {
+      await loadPostComments(nextPage);
+      commentsHeading?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (err) {
+      showNotification(parseApiError(err), "error");
+    } finally {
+      commentsPaginationEl.setAttribute("aria-busy", "false");
+    }
+  });
 
   const renderAverageRating = (ratingValue) => {
     const container = document.getElementById("reviewAverageRating");
@@ -1316,29 +1433,10 @@ async function initReviewDetailPage() {
 
   if (postId) {
     try {
-      const post = await API.getPost(postId);
-      const [postsRaw, categoriesRaw] = await Promise.all([
-        API.getPosts({
-          page: 1,
-          limit: 10,
-          search: post.title,
-          searchIn: "title",
-        }).catch(() => []),
-        API.getCategories().catch(() => []),
-      ]);
-      const feedPost = unwrapApiArray(postsRaw, ["posts"]).find(
-        (item) => String(getEntityId(item)) === String(postId),
-      );
-      const category = unwrapApiArray(categoriesRaw, ["categories"]).find(
-        (item) =>
-          String(firstDefined(item?.id, item?._id, item?.category_id)) ===
-          String(firstDefined(post?.categoryId, post?.category_id)),
-      );
-      const mergedPost = {
-        ...post,
-        ...(feedPost || {}),
-        category: firstDefined(feedPost?.name, category?.name, post?.category),
-      };
+      const mergedPost = await API.getPostDetails(postId, {
+        commentsPage: 1,
+        commentsLimit: commentsPerPage,
+      });
       const titleEl = document.querySelector("[data-post-title]");
       const descEl = document.querySelector("[data-post-desc]");
       const badgeEl = document.querySelector(".review-detail-badge");
@@ -1356,7 +1454,7 @@ async function initReviewDetailPage() {
       const authorName = firstDefined(publicProfile?.full_name, postAuthor.name, "مستخدم");
       const authorCity = firstDefined(publicProfile?.city, postAuthor.city, "");
       if (authorEl) authorEl.textContent = authorName || "مستخدم";
-      if (dateEl) dateEl.textContent = getPostDate(post);
+      if (dateEl) dateEl.textContent = getPostDate(mergedPost);
       const authorCityEl = document.getElementById("reviewAuthorCity");
       const sidebarNameEl = document.getElementById("sidebarAuthorName");
       const sidebarCityEl = document.getElementById("sidebarAuthorCity");
@@ -1398,20 +1496,22 @@ async function initReviewDetailPage() {
         "likesCount",
         "likes",
       );
+      const reportsCount = getPostCount(
+        mergedPost,
+        "reportsCount",
+        "reportCount",
+        "reports",
+      );
       const likeCountEl = document.querySelector("#likeBtn .count");
       const postCommentsCountEl = document.getElementById("postCommentsCount");
+      const postReportsCountEl = document.getElementById("postReportsCount");
       if (likeCountEl) likeCountEl.textContent = String(reactionsCount);
       if (postCommentsCountEl) postCommentsCountEl.textContent = String(commentsCount);
+      if (postReportsCountEl) postReportsCountEl.textContent = String(reportsCount);
       const detailLikeBtn = document.getElementById("likeBtn");
       const detailReportBtn = document.getElementById("reportBtn");
       setReactionButtonState(detailLikeBtn, hasReactedToPost(postId, mergedPost, storedUser));
       setReportButtonState(detailReportBtn, getServerReportState(mergedPost));
-      if (detailLikeBtn) {
-        detailLikeBtn.dataset.reactionId = String(getActionRecordId(mergedPost, "reaction") || "");
-      }
-      if (detailReportBtn) {
-        detailReportBtn.dataset.reportId = String(getActionRecordId(mergedPost, "report") || "");
-      }
       renderAverageRating(
         firstDefined(
           mergedPost.averageRating,
@@ -1420,7 +1520,7 @@ async function initReviewDetailPage() {
           0,
         ),
       );
-      await loadPostComments(mergedPost, null, commentsCount);
+      await loadPostComments(1, mergedPost);
     } catch (err) {
       if (err.status === 401)
         showNotification("يجب تسجيل الدخول للاطلاع على التفاصيل", "error");
@@ -1434,17 +1534,11 @@ async function initReviewDetailPage() {
   if (likeBtn && postId) {
     likeBtn.addEventListener("click", async () => {
       const reacted = likeBtn.dataset.reacted === "true";
-      if (reacted && !likeBtn.dataset.reactionId) {
-        showNotification(
-          "إزالة الإعجاب تحتاج أن يعيد الخادم reactionId مع بيانات المنشور أو أن يوفّر حذف التفاعل بمعرّف المنشور.",
-          "error",
-        );
-        return;
-      }
+      const previousCount = Number(likeBtn.querySelector(".count")?.textContent) || 0;
       setButtonLoading(likeBtn, true);
       try {
         if (reacted) {
-          await API.deleteReaction(likeBtn.dataset.reactionId);
+          await API.deletePostReaction(postId);
           forgetReactedPost(postId);
         } else {
           await API.saveReaction(postId, 1);
@@ -1462,12 +1556,13 @@ async function initReviewDetailPage() {
               "likes",
             ),
           );
+        } else {
+          likeBtn.dataset.nextCount = String(
+            Math.max(0, previousCount + (reacted ? -1 : 1)),
+          );
         }
         likeBtn.dataset.nextReacted = String(
           updatedPost ? hasReactedToPost(postId, updatedPost) : !reacted,
-        );
-        likeBtn.dataset.nextReactionId = String(
-          updatedPost ? getActionRecordId(updatedPost, "reaction") || "" : "",
         );
         showNotification(reacted ? "تمت إزالة الإعجاب" : "تم تسجيل الإعجاب", "success");
       } catch (err) {
@@ -1479,13 +1574,11 @@ async function initReviewDetailPage() {
         setButtonLoading(likeBtn, false);
         if (likeBtn.dataset.nextReacted) {
           setReactionButtonState(likeBtn, likeBtn.dataset.nextReacted === "true");
-          likeBtn.dataset.reactionId = likeBtn.dataset.nextReactionId || "";
           const restoredCountEl = likeBtn.querySelector(".count");
           if (restoredCountEl && likeBtn.dataset.nextCount) {
             restoredCountEl.textContent = likeBtn.dataset.nextCount;
           }
           delete likeBtn.dataset.nextReacted;
-          delete likeBtn.dataset.nextReactionId;
           delete likeBtn.dataset.nextCount;
         }
       }
@@ -1519,56 +1612,6 @@ async function initReviewDetailPage() {
   const commentForm = document.getElementById("commentForm");
   if (commentForm && postId) {
     const commentRatingInput = document.getElementById("commentRating");
-    const renderCommentStars = (ratingValue) =>
-      Array.from(
-        { length: 5 },
-        (_, i) =>
-          `<svg class="${i < ratingValue ? "star-filled" : "star-empty"}" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`,
-      ).join("");
-    const prependComment = (content, rating) => {
-      const user = getStoredUser();
-      const authorName = user?.full_name || "أنت";
-      const date = new Date().toLocaleDateString("ar-EG");
-      commentForm.insertAdjacentHTML(
-        "afterend",
-        `<div class="comment-item">
-          <img src="../images/avatar-saeed.jpg" alt="${escHtml(authorName)}">
-          <div class="comment-item-body">
-            <div class="comment-item-header">
-              <div class="author">
-                <span class="name">${escHtml(authorName)}</span>
-                <div class="stars">${renderCommentStars(rating)}</div>
-              </div>
-              <span class="date">${escHtml(date)}</span>
-            </div>
-            <p>${escHtml(content)}</p>
-            <button class="comment-like-btn" type="button">
-              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-              أعجبني
-            </button>
-          </div>
-        </div>`,
-      );
-
-      commentForm
-        .closest(".card-body")
-        ?.querySelectorAll(".comments-empty")
-        .forEach((item) => item.remove());
-      const heading = commentForm.closest(".card-body")?.querySelector("h3");
-      const match = heading?.textContent.match(/\((\d+)\)/);
-      if (heading && match) {
-        heading.textContent = heading.textContent.replace(
-          /\(\d+\)/,
-          `(${Number(match[1]) + 1})`,
-        );
-      } else if (heading) {
-        heading.textContent = "التعليقات (1)";
-      }
-      const actionCount = document.getElementById("postCommentsCount");
-      if (actionCount) {
-        actionCount.textContent = String(Number(actionCount.textContent) + 1);
-      }
-    };
     commentForm.querySelectorAll(".star-rating button").forEach((btn, i) => {
       btn.addEventListener("click", () => {
         if (commentRatingInput) commentRatingInput.value = i + 1;
@@ -1587,11 +1630,27 @@ async function initReviewDetailPage() {
       const submitBtn = commentForm.querySelector('button[type="submit"]');
       setButtonLoading(submitBtn, true);
       try {
-        const created = await API.createComment(postId, content, rating);
+        await API.createComment(postId, content, rating);
         showNotification("تم إرسال التعليق بنجاح!", "success");
-        prependComment(created?.content || content, Number(created?.rating ?? rating) || 0);
         document.getElementById("commentContent").value = "";
         if (commentRatingInput) commentRatingInput.value = "0";
+        const updatedPost = await loadPostComments(1);
+        const commentsCount = getPostCount(
+          updatedPost,
+          "commentsCount",
+          "commentCount",
+          "comments",
+        );
+        const actionCount = document.getElementById("postCommentsCount");
+        if (actionCount) actionCount.textContent = String(commentsCount);
+        renderAverageRating(
+          firstDefined(
+            updatedPost.averageRating,
+            updatedPost.avgRating,
+            updatedPost.rating,
+            0,
+          ),
+        );
       } catch (err) {
         showNotification(
           err.status === 401 ? "يجب تسجيل الدخول أولاً" : parseApiError(err),
@@ -1608,19 +1667,13 @@ async function initReviewDetailPage() {
   if (reportBtn && postId) {
     reportBtn.addEventListener("click", async () => {
       const reported = reportBtn.dataset.reported === "true";
-      if (reported && !reportBtn.dataset.reportId) {
-        showNotification(
-          "إزالة البلاغ تحتاج أن يعيد الخادم reportId مع بيانات المنشور أو أن يوفّر حذف البلاغ بمعرّف المنشور.",
-          "error",
-        );
-        return;
-      }
+      const previousCount = Number(document.getElementById("postReportsCount")?.textContent) || 0;
       const reason = reported ? null : await requestReportReason();
       if (!reported && !reason) return;
       setButtonLoading(reportBtn, true);
       try {
         if (reported) {
-          await API.deleteReport(reportBtn.dataset.reportId);
+          await API.deletePostReport(postId);
         } else {
           await API.saveReport(postId, reason);
         }
@@ -1628,8 +1681,10 @@ async function initReviewDetailPage() {
         reportBtn.dataset.nextReported = String(
           updatedPost ? getServerReportState(updatedPost) : !reported,
         );
-        reportBtn.dataset.nextReportId = String(
-          updatedPost ? getActionRecordId(updatedPost, "report") || "" : "",
+        reportBtn.dataset.nextReportCount = String(
+          updatedPost
+            ? getPostCount(updatedPost, "reportsCount", "reportCount", "reports")
+            : Math.max(0, previousCount + (reported ? -1 : 1)),
         );
         showNotification(reported ? "تمت إزالة البلاغ" : "تم إرسال البلاغ للمراجعة", "success");
       } catch (err) {
@@ -1641,9 +1696,12 @@ async function initReviewDetailPage() {
         setButtonLoading(reportBtn, false);
         if (reportBtn.dataset.nextReported) {
           setReportButtonState(reportBtn, reportBtn.dataset.nextReported === "true");
-          reportBtn.dataset.reportId = reportBtn.dataset.nextReportId || "";
+          const reportCountEl = document.getElementById("postReportsCount");
+          if (reportCountEl && reportBtn.dataset.nextReportCount) {
+            reportCountEl.textContent = reportBtn.dataset.nextReportCount;
+          }
           delete reportBtn.dataset.nextReported;
-          delete reportBtn.dataset.nextReportId;
+          delete reportBtn.dataset.nextReportCount;
         }
       }
     });
@@ -1805,6 +1863,8 @@ async function initPublicProfilePage() {
     : 1;
   let currentPosts = [];
   let hasNextPage = false;
+  let totalPages = null;
+  let totalPosts = null;
 
   backLink?.addEventListener("click", (event) => {
     if (window.history.length > 1) {
@@ -1819,7 +1879,7 @@ async function initPublicProfilePage() {
   };
 
   const renderPosts = (posts) => {
-    if (postsCountEl) postsCountEl.textContent = String(posts.length);
+    if (postsCountEl) postsCountEl.textContent = String(totalPosts ?? posts.length);
     if (!posts.length) {
       postsListEl.innerHTML = `
         <div class="feed-empty-state">
@@ -1835,6 +1895,7 @@ async function initPublicProfilePage() {
         const rating = Number(firstDefined(post.averageRating, post.avgRating, post.rating, 0)) || 0;
         const commentsCount = getPostCount(post, "commentsCount", "commentCount", "comments");
         const reactionsCount = getPostCount(post, "reactionsCount", "reactionCount", "reactions", "likesCount", "likes");
+        const reportsCount = getPostCount(post, "reportsCount", "reportCount", "reports");
         const description = truncateText(post.description || post.content || post.body || "", 260);
         const href = postId ? `post.html?id=${encodeURIComponent(String(postId))}` : "#";
         return `
@@ -1857,6 +1918,7 @@ async function initPublicProfilePage() {
               </div>
               <div class="feed-number-metric">${Icons.heart}<strong>${reactionsCount}</strong><span>إعجاب</span></div>
               <div class="feed-number-metric">${Icons.messageCircle}<strong>${commentsCount}</strong><span>تعليق</span></div>
+              <div class="feed-number-metric">${Icons.flag}<strong>${reportsCount}</strong><span>بلاغ</span></div>
             </div>
           </article>`;
       })
@@ -1869,12 +1931,17 @@ async function initPublicProfilePage() {
       paginationEl.hidden = true;
       return;
     }
+    const pageItems = getCondensedPageItems(currentPage, totalPages, hasNextPage);
     paginationEl.hidden = false;
     paginationEl.innerHTML = `
-      <p class="feed-pagination-info">الصفحة ${currentPage} · ${currentPosts.length} منشور</p>
+      <p class="feed-pagination-info">الصفحة ${currentPage}${totalPages ? ` من ${totalPages}` : ""}${totalPosts !== null ? ` · ${totalPosts} منشور` : ` · ${currentPosts.length} منشور`}</p>
       <div class="feed-pagination-controls">
         <button type="button" class="feed-pagination-arrow" data-profile-page="previous" aria-label="الصفحة السابقة" ${currentPage === 1 ? "disabled" : ""}>${Icons.chevronRight}</button>
-        <span class="feed-pagination-page active" aria-current="page">${currentPage}</span>
+        <div class="feed-pagination-pages">
+          ${pageItems.map((page) => page === null
+            ? '<span class="feed-pagination-ellipsis" aria-hidden="true">…</span>'
+            : `<button type="button" class="feed-pagination-page${page === currentPage ? " active" : ""}" data-profile-page="${page}" ${page === currentPage ? 'aria-current="page"' : ""}>${page}</button>`).join("")}
+        </div>
         <button type="button" class="feed-pagination-arrow" data-profile-page="next" aria-label="الصفحة التالية" ${hasNextPage ? "" : "disabled"}>${Icons.chevronLeft}</button>
       </div>`;
   };
@@ -1889,13 +1956,23 @@ async function initPublicProfilePage() {
         limit: postsPerPage,
       });
       currentPosts = unwrapApiArray(postsRaw, ["posts"]);
+      const pagination = getPaginationData(postsRaw, {
+        page: currentPage,
+        limit: postsPerPage,
+        hasNext: currentPosts.length === postsPerPage,
+      });
+      currentPage = pagination.page;
+      totalPages = pagination.totalPages;
+      totalPosts = pagination.total;
       if (!currentPosts.length && currentPage > 1) {
-        currentPage -= 1;
+        currentPage = totalPages && totalPages < currentPage
+          ? totalPages
+          : currentPage - 1;
         await loadPosts({ scroll });
         return;
       }
-      hasNextPage = false;
-      if (currentPosts.length === postsPerPage) {
+      hasNextPage = pagination.hasNext;
+      if (totalPages === null && currentPosts.length === postsPerPage) {
         const nextRaw = await API.getPostsByUser(userId, {
           page: currentPage + 1,
           limit: postsPerPage,
@@ -1911,6 +1988,9 @@ async function initPublicProfilePage() {
       if (scroll) postsListEl.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
       currentPosts = [];
+      hasNextPage = false;
+      totalPages = null;
+      totalPosts = null;
       if (postsCountEl) postsCountEl.textContent = "0";
       postsListEl.innerHTML = `
         <div class="feed-empty-state error">
@@ -1955,8 +2035,14 @@ async function initPublicProfilePage() {
   paginationEl?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-profile-page]");
     if (!button || button.disabled) return;
-    currentPage += button.dataset.profilePage === "next" ? 1 : -1;
-    currentPage = Math.max(1, currentPage);
+    const target = button.dataset.profilePage;
+    const nextPage = target === "previous"
+      ? currentPage - 1
+      : target === "next"
+        ? currentPage + 1
+        : Number(target);
+    if (!Number.isInteger(nextPage) || nextPage < 1) return;
+    currentPage = nextPage;
     loadPosts({ scroll: true });
   });
   await loadPosts();
@@ -1981,6 +2067,8 @@ async function initFeedPage() {
     Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   let currentPosts = [];
   let hasNextPage = false;
+  let totalPages = null;
+  let totalPosts = null;
   let requestVersion = 0;
 
   const getFilterParams = (page = currentPage, limit = postsPerPage) => {
@@ -2041,8 +2129,6 @@ async function initFeedPage() {
         const date = getPostDate(post);
         const reacted = hasReactedToPost(postId, post);
         const reported = getServerReportState(post);
-        const reactionId = getActionRecordId(post, "reaction");
-        const reportId = getActionRecordId(post, "report");
 
         return `
           <article class="feed-post-card" data-feed-post data-post-id="${escHtml(String(postId || ""))}">
@@ -2084,7 +2170,7 @@ async function initFeedPage() {
             </div>
 
             <div class="feed-post-actions">
-              <button type="button" class="${reacted ? "active" : ""}" data-feed-like="${escHtml(String(postId || ""))}" data-reaction-id="${escHtml(String(reactionId || ""))}" data-reacted="${reacted}" aria-pressed="${reacted}" ${postId ? "" : "disabled"}>
+              <button type="button" class="${reacted ? "active" : ""}" data-feed-like="${escHtml(String(postId || ""))}" data-reacted="${reacted}" aria-pressed="${reacted}" ${postId ? "" : "disabled"}>
                 ${Icons.heart}
                 <span data-reaction-label>${reacted ? "إزالة الإعجاب" : "إعجاب"}</span>
               </button>
@@ -2092,7 +2178,7 @@ async function initFeedPage() {
                 ${Icons.messageCircle}
                 <span>تعليق</span>
               </a>
-              <button type="button" class="${reported ? "active report-active" : ""}" data-feed-report="${escHtml(String(postId || ""))}" data-report-id="${escHtml(String(reportId || ""))}" data-reported="${reported}" aria-pressed="${reported}" ${postId ? "" : "disabled"}>
+              <button type="button" class="${reported ? "active report-active" : ""}" data-feed-report="${escHtml(String(postId || ""))}" data-reported="${reported}" aria-pressed="${reported}" ${postId ? "" : "disabled"}>
                 ${Icons.flag}
                 <span data-report-label>${reported ? "إزالة البلاغ" : "إبلاغ"}</span>
               </button>
@@ -2107,17 +2193,10 @@ async function initFeedPage() {
         const postId = button.dataset.feedLike;
         const reacted = button.dataset.reacted === "true";
         if (!postId) return;
-        if (reacted && !button.dataset.reactionId) {
-          showNotification(
-            "إزالة الإعجاب تحتاج أن يعيد GET /posts حقل reactionId أو أن يوفّر الخادم حذف التفاعل بمعرّف المنشور.",
-            "error",
-          );
-          return;
-        }
         setButtonLoading(button, true);
         try {
           if (reacted) {
-            await API.deleteReaction(button.dataset.reactionId);
+            await API.deletePostReaction(postId);
             forgetReactedPost(postId);
             showNotification("تمت إزالة الإعجاب", "success");
           } else {
@@ -2139,19 +2218,12 @@ async function initFeedPage() {
         const postId = button.dataset.feedReport;
         const reported = button.dataset.reported === "true";
         if (!postId) return;
-        if (reported && !button.dataset.reportId) {
-          showNotification(
-            "إزالة البلاغ تحتاج أن يعيد GET /posts حقل reportId أو أن يوفّر الخادم حذف البلاغ بمعرّف المنشور.",
-            "error",
-          );
-          return;
-        }
         const reason = reported ? null : await requestReportReason();
         if (!reported && !reason) return;
         setButtonLoading(button, true);
         try {
           if (reported) {
-            await API.deleteReport(button.dataset.reportId);
+            await API.deletePostReport(postId);
             showNotification("تمت إزالة البلاغ", "success");
           } else {
             await API.saveReport(postId, reason);
@@ -2175,20 +2247,19 @@ async function initFeedPage() {
       return;
     }
 
-    const pageNumbers = [];
-    if (currentPage > 1) pageNumbers.push(currentPage - 1);
-    pageNumbers.push(currentPage);
-    if (hasNextPage) pageNumbers.push(currentPage + 1);
+    const pageItems = getCondensedPageItems(currentPage, totalPages, hasNextPage);
     paginationEl.hidden = false;
     paginationEl.innerHTML = `
-      <p class="feed-pagination-info">الصفحة ${currentPage} · ${currentPosts.length} منشور</p>
+      <p class="feed-pagination-info">الصفحة ${currentPage}${totalPages ? ` من ${totalPages}` : ""}${totalPosts !== null ? ` · ${totalPosts} منشور` : ` · ${currentPosts.length} منشور`}</p>
       <div class="feed-pagination-controls">
         <button type="button" class="feed-pagination-arrow" data-feed-page="previous" aria-label="الصفحة السابقة" ${currentPage === 1 ? "disabled" : ""}>
           ${Icons.chevronRight}
         </button>
         <div class="feed-pagination-pages">
-          ${pageNumbers
-            .map((page) => `<button type="button" class="feed-pagination-page${page === currentPage ? " active" : ""}" data-feed-page="${page}" ${page === currentPage ? 'aria-current="page"' : ""}>${page}</button>`)
+          ${pageItems
+            .map((page) => page === null
+              ? '<span class="feed-pagination-ellipsis" aria-hidden="true">…</span>'
+              : `<button type="button" class="feed-pagination-page${page === currentPage ? " active" : ""}" data-feed-page="${page}" ${page === currentPage ? 'aria-current="page"' : ""}>${page}</button>`)
             .join("")}
         </div>
         <button type="button" class="feed-pagination-arrow" data-feed-page="next" aria-label="الصفحة التالية" ${hasNextPage ? "" : "disabled"}>
@@ -2208,15 +2279,25 @@ async function initFeedPage() {
       const postsRaw = await API.getPosts(getFilterParams());
       if (version !== requestVersion) return;
       currentPosts = unwrapApiArray(postsRaw, ["posts"]);
+      const pagination = getPaginationData(postsRaw, {
+        page: currentPage,
+        limit: postsPerPage,
+        hasNext: currentPosts.length === postsPerPage,
+      });
+      currentPage = pagination.page;
+      totalPages = pagination.totalPages;
+      totalPosts = pagination.total;
 
       if (!currentPosts.length && currentPage > 1) {
-        currentPage -= 1;
+        currentPage = totalPages && totalPages < currentPage
+          ? totalPages
+          : currentPage - 1;
         await loadPage({ scroll });
         return;
       }
 
-      hasNextPage = false;
-      if (currentPosts.length === postsPerPage) {
+      hasNextPage = pagination.hasNext;
+      if (totalPages === null && currentPosts.length === postsPerPage) {
         const nextRaw = await API.getPosts(
           getFilterParams(currentPage + 1, postsPerPage),
         );
@@ -2232,6 +2313,8 @@ async function initFeedPage() {
       if (version !== requestVersion) return;
       currentPosts = [];
       hasNextPage = false;
+      totalPages = null;
+      totalPosts = null;
       if (feedCountEl) feedCountEl.textContent = "0";
       feedListEl.innerHTML = `
         <div class="feed-empty-state error">
